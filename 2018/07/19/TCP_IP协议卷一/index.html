@@ -1,113 +1,23 @@
 <!DOCTYPE html>
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-<html class="theme-next muse use-motion" lang="">
+<html>
 <head>
-  <meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
-<meta name="theme-color" content="#222">
-
-
-
-
-
-
-
-
-
-
-
-
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
-
-<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
-
-
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
-
-
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
-
-
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
-
-
-  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
-
-
-
-
-
-
-
-
-
-<script type="text/javascript" id="hexo.configurations">
-  var NexT = window.NexT || {};
-  var CONFIG = {
-    root: '/',
-    scheme: 'Muse',
-    version: '6.3.0',
-    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
-    fancybox: false,
-    fastclick: false,
-    lazyload: false,
-    tabs: true,
-    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
-    algolia: {
-      applicationID: '',
-      apiKey: '',
-      indexName: '',
-      hits: {"per_page":10},
-      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
-    }
-  };
-</script>
-
-
+  <meta charset="utf-8">
+  <meta name=referrer content=never>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
   
-
-
-
-
+  
+  <title>Hexo</title>
   <meta name="description" content="零 · 概述I · OSI参考模型   名称 例子     应用层 指定完成某些用户初始化任务的方法，应用协议通常由应用开发者设计实现。FTP、Skype等   表示层 指定数据表示格式和转化规则的方法，如转码，加密等   会话层 指定由多个连接组成一个通信会话的方法，包括关闭连接、重启连接、session管理等类似   传输层 指定计算机系统间多个程序之间连接的方法，TCP、UDP   网络层">
 <meta property="og:type" content="article">
 <meta property="og:title" content="个人博客">
@@ -119,242 +29,272 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="个人博客">
 <meta name="twitter:description" content="零 · 概述I · OSI参考模型   名称 例子     应用层 指定完成某些用户初始化任务的方法，应用协议通常由应用开发者设计实现。FTP、Skype等   表示层 指定数据表示格式和转化规则的方法，如转码，加密等   会话层 指定由多个连接组成一个通信会话的方法，包括关闭连接、重启连接、session管理等类似   传输层 指定计算机系统间多个程序之间连接的方法，TCP、UDP   网络层">
-
-
-
-
-
-
-  <link rel="canonical" href="http://gxcbuf.github.io/2018/07/19/TCP_IP协议卷一/"/>
-
-
-
-<script type="text/javascript" id="page.configurations">
-  CONFIG.page = {
-    sidebar: "",
-  };
-</script>
-
-  <title> | 个人博客</title>
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/07/19/TCP_IP协议卷一/index.html">
   
-
-
-
-
-
-
-
-
-
-  <noscript>
-  <style type="text/css">
-    .use-motion .motion-element,
-    .use-motion .brand,
-    .use-motion .menu-item,
-    .sidebar-inner,
-    .use-motion .post-block,
-    .use-motion .pagination,
-    .use-motion .comments,
-    .use-motion .post-header,
-    .use-motion .post-body,
-    .use-motion .collection-title { opacity: initial; }
-
-    .use-motion .logo,
-    .use-motion .site-title,
-    .use-motion .site-subtitle {
-      opacity: initial;
-      top: initial;
-    }
-
-    .use-motion {
-      .logo-line-before i { left: initial; }
-      .logo-line-after i { right: initial; }
-    }
-  </style>
-</noscript>
+    <link rel="alternate" href="/atom.xml" title="个人博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  <!-- font-awesome CSS -->
+  <!-- <link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+    
+    
 
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" lang="default">
 
-  
-  
-    
-  
-
-  <div class="container sidebar-position-left page-post-detail">
-    <div class="headband"></div>
-
-    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
-      <div class="header-inner"><div class="site-brand-wrapper">
-  <div class="site-meta ">
-    
-
-    <div class="custom-logo-site-title">
-      <a href="/" class="brand" rel="start">
-        <span class="logo-line-before"><i></i></span>
-        <span class="site-title">个人博客</span>
-        <span class="logo-line-after"><i></i></span>
-      </a>
-    </div>
-    
-  </div>
-
-  <div class="site-nav-toggle">
-    <button aria-label="Toggle navigation bar">
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-    </button>
-  </div>
-</div>
-
-
-
-<nav class="site-nav">
-  
-    <ul id="menu" class="menu">
-      
-        
-        
-        
-          
-          <li class="menu-item menu-item-home">
-    <a href="/" rel="section">
-      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
-  </li>
-        
-        
-        
-          
-          <li class="menu-item menu-item-archives">
-    <a href="/archives/" rel="section">
-      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
-  </li>
-
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
       
       
-    </ul>
-  
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/cofess" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">昵称</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Web Developer &amp; Designer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Shenzhen, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
 
-  
-    
-
-  
-
-  
-</nav>
-
-
-
-  
-
-
-
-</div>
-    </header>
-
-    
-
-
-    <main id="main" class="main">
-      <div class="main-inner">
-        <div class="content-wrap">
-          
-          <div id="content" class="content">
-            
-
-  <div id="posts" class="posts-expand">
-    
-
-  
-
-  
-  
-  
-
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/07/19/TCP_IP协议卷一/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-
-            
-            
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-
-              
-                
-              
-
-              <time title="Created: 2018-07-19 19:40:59" itemprop="dateCreated datePublished" datetime="2018-07-19T19:40:59+08:00">2018-07-19</time>
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
         </div>
-      </header>
-    
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
 
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav">
+        
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">Books</span>
+          </a>
+        </li>
+        
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
       
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/cofess" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="http://weibo.com/cofess" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="https://twitter.com/iwebued" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
       
 
+    
+      
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Archive</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">July 2018</a><span class="archive-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2018/07/19/TCP_IP协议卷一/" class="title">(no title)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2018-07-19T11:40:59.000Z" itemprop="datePublished">2018-07-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-TCP_IP协议卷一" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2018/07/19/TCP_IP协议卷一/" class="article-date">
+	  <time datetime="2018-07-19T11:40:59.000Z" itemprop="datePublished">2018-07-19</time>
+	</a>
+</span>
+        
+        
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2018/07/19/TCP_IP协议卷一/#comments" class="article-comment-link">Comments</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry markdown-body" itemprop="articleBody">
       
         <h2 id="零-·-概述"><a href="#零-·-概述" class="headerlink" title="零 · 概述"></a>零 · 概述</h2><h3 id="I-·-OSI参考模型"><a href="#I-·-OSI参考模型" class="headerlink" title="I · OSI参考模型"></a>I · OSI参考模型</h3><table>
 <thead>
@@ -1557,328 +1497,208 @@
 
       
     </div>
-
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
     
-
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://gxcbuf.github.io/2018/07/19/TCP_IP协议卷一/" title="" target="_blank" rel="external">http://gxcbuf.github.io/2018/07/19/TCP_IP协议卷一/</a>
+    </li>
     
     
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-      
-      
-
-      
-
-      
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
+  </ul>
+</blockquote>
 
 
-
-    <div class="post-spread">
-      
-    </div>
-  </div>
-
-
-          </div>
-          
-
-  
-
-
-
-        </div>
-        
-          
-  
-  <div class="sidebar-toggle">
-    <div class="sidebar-toggle-line-wrap">
-      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
-    </div>
-  </div>
-
-  <aside id="sidebar" class="sidebar">
-    
-    <div class="sidebar-inner">
-
-      
-
-      
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
-            Overview
-          </li>
-        </ul>
-      
-
-      <section class="site-overview-wrap sidebar-panel">
-        <div class="site-overview">
-          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
-            
-              <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description"></p>
-          </div>
-
-          
-            <nav class="site-state motion-element">
-              
-                <div class="site-state-item site-state-posts">
-                
-                  <a href="/archives/">
-                
-                    <span class="site-state-item-count">1</span>
-                    <span class="site-state-item-name">posts</span>
-                  </a>
-                </div>
-              
-
-              
-
-              
-            </nav>
-          
-
-          
-
-          
-
-          
-          
-
-          
-          
-
-          
-            
-          
-          
-
-        </div>
-      </section>
-
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-
-            
-              
-            
-
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#零-·-概述"><span class="nav-number">1.</span> <span class="nav-text">零 · 概述</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-OSI参考模型"><span class="nav-number">1.1.</span> <span class="nav-text">I · OSI参考模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-端口号"><span class="nav-number">1.2.</span> <span class="nav-text">II · 端口号</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#III-·-DNS"><span class="nav-number">1.3.</span> <span class="nav-text">III · DNS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IV-·-广播和组播"><span class="nav-number">1.4.</span> <span class="nav-text">IV · 广播和组播</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#壹-·-Internet地址结构"><span class="nav-number">2.</span> <span class="nav-text">壹 · Internet地址结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-IP地址表示"><span class="nav-number">2.1.</span> <span class="nav-text">I · IP地址表示</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-IP地址结构"><span class="nav-number">2.2.</span> <span class="nav-text">II · IP地址结构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-地址分类"><span class="nav-number">2.2.1.</span> <span class="nav-text">1. 地址分类</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-子网寻址"><span class="nav-number">2.2.2.</span> <span class="nav-text">2. 子网寻址</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-1-子网掩码"><span class="nav-number">2.2.2.1.</span> <span class="nav-text">2.1 子网掩码</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-广播地址"><span class="nav-number">2.2.2.2.</span> <span class="nav-text">2.2 广播地址</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-IPv6地址和接口标识符"><span class="nav-number">2.2.2.3.</span> <span class="nav-text">2.3 IPv6地址和接口标识符</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#III-·-特殊地址"><span class="nav-number">2.3.</span> <span class="nav-text">III · 特殊地址</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#贰-·-链路层"><span class="nav-number">3.</span> <span class="nav-text">贰 · 链路层</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-以太网"><span class="nav-number">3.1.</span> <span class="nav-text">I · 以太网</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-以太网帧格式"><span class="nav-number">3.1.1.</span> <span class="nav-text">1. 以太网帧格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-通讯传输"><span class="nav-number">3.1.2.</span> <span class="nav-text">2. 通讯传输</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-网桥和交换机"><span class="nav-number">3.2.</span> <span class="nav-text">II · 网桥和交换机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#III-·-无线局域网—IEEE-802-11（Wi-Fi）"><span class="nav-number">3.3.</span> <span class="nav-text">III · 无线局域网—IEEE 802.11（Wi-Fi）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IV-·-点到点协议"><span class="nav-number">3.4.</span> <span class="nav-text">IV · 点到点协议</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#VI-·-隧道"><span class="nav-number">3.5.</span> <span class="nav-text">VI · 隧道</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#叁-·-地址解析协议ARP"><span class="nav-number">4.</span> <span class="nav-text">叁 · 地址解析协议ARP</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-工作流程"><span class="nav-number">4.1.</span> <span class="nav-text">I · 工作流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-ARP帧格式"><span class="nav-number">4.2.</span> <span class="nav-text">II · ARP帧格式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#III-·-ARP缓存"><span class="nav-number">4.3.</span> <span class="nav-text">III · ARP缓存</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#肆-·-IP协议"><span class="nav-number">5.</span> <span class="nav-text">肆 · IP协议</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-IP头部"><span class="nav-number">5.1.</span> <span class="nav-text">I · IP头部</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-IP转发"><span class="nav-number">5.2.</span> <span class="nav-text">II · IP转发</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-路由表（转发表）"><span class="nav-number">5.2.1.</span> <span class="nav-text">1. 路由表（转发表）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-转发行为"><span class="nav-number">5.2.2.</span> <span class="nav-text">2. 转发行为</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#伍-·-DHCP"><span class="nav-number">6.</span> <span class="nav-text">伍 · DHCP</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-动态主机配置协议"><span class="nav-number">6.1.</span> <span class="nav-text">I · 动态主机配置协议</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-地址池和租用"><span class="nav-number">6.1.1.</span> <span class="nav-text">1. 地址池和租用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-DHCP协议操作"><span class="nav-number">6.1.2.</span> <span class="nav-text">2. DHCP协议操作</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#陆-·-防火墙和网络地址转换"><span class="nav-number">7.</span> <span class="nav-text">陆 · 防火墙和网络地址转换</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-防火墙"><span class="nav-number">7.1.</span> <span class="nav-text">I · 防火墙</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-包过滤防火墙"><span class="nav-number">7.1.1.</span> <span class="nav-text">1. 包过滤防火墙</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-代理防火墙"><span class="nav-number">7.1.2.</span> <span class="nav-text">2. 代理防火墙</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-网络地址转换NAT"><span class="nav-number">7.2.</span> <span class="nav-text">II · 网络地址转换NAT</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-传统NAT"><span class="nav-number">7.2.1.</span> <span class="nav-text">1. 传统NAT</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#柒-·-ICMP"><span class="nav-number">8.</span> <span class="nav-text">柒 · ICMP</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-ICMP报文"><span class="nav-number">8.1.</span> <span class="nav-text">I · ICMP报文</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#捌-·-UDP和IP分片"><span class="nav-number">9.</span> <span class="nav-text">捌 · UDP和IP分片</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-UDP头部"><span class="nav-number">9.1.</span> <span class="nav-text">I · UDP头部</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-IP分片"><span class="nav-number">9.2.</span> <span class="nav-text">II · IP分片</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#玖-·-域名系统DNS"><span class="nav-number">10.</span> <span class="nav-text">玖 · 域名系统DNS</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-DNS命名空间"><span class="nav-number">10.1.</span> <span class="nav-text">I · DNS命名空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-缓存"><span class="nav-number">10.2.</span> <span class="nav-text">II · 缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#III-·-DNS协议"><span class="nav-number">10.3.</span> <span class="nav-text">III · DNS协议</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-DNS消息格式"><span class="nav-number">10.3.1.</span> <span class="nav-text">1. DNS消息格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-TCP或UDP"><span class="nav-number">10.3.2.</span> <span class="nav-text">2. TCP或UDP</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-资源记录类型"><span class="nav-number">10.3.3.</span> <span class="nav-text">3. 资源记录类型</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#拾-·-传输控制协议（TCP）"><span class="nav-number">11.</span> <span class="nav-text">拾 · 传输控制协议（TCP）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-TCP头部和封装"><span class="nav-number">11.1.</span> <span class="nav-text">I · TCP头部和封装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-TCP的连接与终止"><span class="nav-number">11.2.</span> <span class="nav-text">II · TCP的连接与终止</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-TCP半关闭"><span class="nav-number">11.2.1.</span> <span class="nav-text">1. TCP半关闭</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-初始化序列号"><span class="nav-number">11.2.2.</span> <span class="nav-text">2. 初始化序列号</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-连接建立超时"><span class="nav-number">11.2.3.</span> <span class="nav-text">3. 连接建立超时</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#III-·-TCP选项"><span class="nav-number">11.3.</span> <span class="nav-text">III · TCP选项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IV-·-TCP路径最大传输单元发现"><span class="nav-number">11.4.</span> <span class="nav-text">IV · TCP路径最大传输单元发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#V-·-TCP状态转换"><span class="nav-number">11.5.</span> <span class="nav-text">V · TCP状态转换</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-TCP状态转换图"><span class="nav-number">11.5.1.</span> <span class="nav-text">1. TCP状态转换图</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-TIME-WAIT状态"><span class="nav-number">11.5.2.</span> <span class="nav-text">2. TIME_WAIT状态</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-FIN-WAIT-2状态"><span class="nav-number">11.5.3.</span> <span class="nav-text">3. FIN_WAIT_2状态</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-CLOSE-WAIT状态"><span class="nav-number">11.5.4.</span> <span class="nav-text">4. CLOSE_WAIT状态</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#VI-·-报文段重置"><span class="nav-number">11.6.</span> <span class="nav-text">VI · 报文段重置</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-针对不存在端口的连接请求"><span class="nav-number">11.6.1.</span> <span class="nav-text">1. 针对不存在端口的连接请求</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-终止一条连接"><span class="nav-number">11.6.2.</span> <span class="nav-text">2. 终止一条连接</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-半开连接"><span class="nav-number">11.6.3.</span> <span class="nav-text">3. 半开连接</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-时间等待错误"><span class="nav-number">11.6.4.</span> <span class="nav-text">4. 时间等待错误</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#VII-·-TCP服务器选项"><span class="nav-number">11.7.</span> <span class="nav-text">VII · TCP服务器选项</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-TCP端口号"><span class="nav-number">11.7.1.</span> <span class="nav-text">1. TCP端口号</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-进入连接队列"><span class="nav-number">11.7.2.</span> <span class="nav-text">2. 进入连接队列</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#V-·-紧急机制"><span class="nav-number">11.8.</span> <span class="nav-text">V · 紧急机制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#拾叁-·-TCP拥塞控制"><span class="nav-number">12.</span> <span class="nav-text">拾叁 · TCP拥塞控制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-经典算法"><span class="nav-number">12.1.</span> <span class="nav-text">I · 经典算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-慢启动"><span class="nav-number">12.1.1.</span> <span class="nav-text">1. 慢启动</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-拥塞避免"><span class="nav-number">12.1.2.</span> <span class="nav-text">2. 拥塞避免</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-慢启动和拥塞避免结合"><span class="nav-number">12.1.3.</span> <span class="nav-text">3. 慢启动和拥塞避免结合</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-快速恢复"><span class="nav-number">12.1.4.</span> <span class="nav-text">4. 快速恢复</span></a></li></ol></li></ol></li></ol></div>
-            
-
-          </div>
-        </section>
-      <!--/noindex-->
-      
-
-      
-
-    </div>
-  </aside>
-
-
-        
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/cofess" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
       </div>
-    </main>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/cofess" target="_blank"><span class="text-dark">昵称</span><small class="ml-1x">Web Developer &amp; Designer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
 
-    <footer id="footer" class="footer">
-      <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
-  <span class="with-love" id="animate">
-    <i class="fa fa-user"></i>
-  </span>
-  <span class="author" itemprop="copyrightHolder">郭欣成</span>
 
+    </div>
+  </article>
   
+    
+  <section id="comments">
+  	
+       
+    <div id="vcomments"></div>
+
+    
+    
+  </section>
+
 
   
 </div>
 
-
-
-
-  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
-
-
-
-  <span class="post-meta-divider">|</span>
-
-
-
-  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
-
-
-
-
-        
-
-
-
-
-
-
-
-
-        
-      </div>
-    </footer>
-
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>$</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
     
-      <div class="back-to-top">
-        <i class="fa fa-arrow-up"></i>
-        
-      </div>
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
     
-
-    
-
   </div>
-
+  </div>
+</nav>
   
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>Maybe you could buy me a cup of coffee.</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/images/donate/alipayimg.png" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open alipay app scan this qrcode, buy me a coffee!</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/images/donate/wechatpayimg.png" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open wechat app scan this qrcode, buy me a coffee!</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> alipay</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> wechat payment</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-<script type="text/javascript">
-  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
-    window.Promise = null;
-  }
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/cofess" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="http://weibo.com/cofess" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="https://twitter.com/iwebued" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<script src="/js/plugin.min.js"></script>
+<script src="/js/application.js"></script>
   
-  
-    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
-  
-
-  
-  
-    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
-  
-
-  
-  
-    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
-  
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
-
-  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
-
-
-
-  
-  
-
-  
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+    
+    
+    
+        <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+    
+    
+    
+        
 
 
+    
+    
+        
+    
+   <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+   <script src="//cdn.jsdelivr.net/npm/valine"></script>
+   <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+     var meta = 'nick,mail,link';
+     meta = meta.split(',').filter(function (item) {
+       return GUEST.indexOf(item)>-1;
+     });
+     new Valine({
+         el: '#vcomments' ,
+         verify: false,
+         notify: false,
+         appId: '',
+         appKey: '',
+         placeholder: 'Just go go',
+         avatar:'mm',
+         meta:meta,
+         pageSize:'10' || 10,
+         visitor: false
+     });
+   </script>
 
-  
+    
 
-
-  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
-
-
-
-  
-
-
-
-  
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-  
-
-
+    
+    
 
 
-
-  
-
-  
-
-  
-
-  
-
-  
-  
-
-  
-
-  
-
-  
-
-  
-
-  
 
 </body>
 </html>
