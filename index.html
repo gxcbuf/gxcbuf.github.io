@@ -208,7 +208,7 @@
   <div class="widget">
     <h3 class="widget-title">分类</h3>
     <div class="widget-body">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/源码阅读/">源码阅读</a><span class="category-list-count">1</span></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/源码阅读/">源码阅读</a><span class="category-list-count">2</span></li></ul>
     </div>
   </div>
 
@@ -218,7 +218,7 @@
   <div class="widget">
     <h3 class="widget-title">标签</h3>
     <div class="widget-body">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">1</span></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">2</span></li></ul>
     </div>
   </div>
 
@@ -228,7 +228,7 @@
   <div class="widget">
     <h3 class="widget-title">归档</h3>
     <div class="widget-body">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/08/">八月 2018</a><span class="archive-list-count">1</span></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/08/">八月 2018</a><span class="archive-list-count">2</span></li></ul>
     </div>
   </div>
 
@@ -255,6 +255,21 @@
             </div>
           </li>
           
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/源码阅读/">源码阅读</a>
+              </p>
+              <p class="item-title">
+                <a href="/2018/08/01/redis/0_redis源码阅读/" class="title">redis源码阅读(零) 概述</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2018-08-01T04:23:19.000Z" itemprop="datePublished">2018-08-01</time>
+              </p>
+            </div>
+          </li>
+          
       </ul>
     </div>
   </div>
@@ -267,144 +282,83 @@
   
   <main class="main" role="main">
   
-  
-    <div class="content">
-  <article id="post-redis/1_sds字符串" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+  <div class="content article-list">
     
-    <div class="article-header">
-      
-        
+      <article class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+  <div class="article-header">
+    
   
     <h1 itemprop="name">
       <a class="article-title" href="/2018/08/01/redis/1_sds字符串/">Redis源码阅读(一) 简单动态字符串</a>
     </h1>
   
 
-      
-      <div class="article-meta">
-        <span class="article-date">
+  </div>
+  
+  <p class="article-meta">
+    <span class="article-date">
     <i class="icon icon-calendar-check"></i>
 	<a href="/2018/08/01/redis/1_sds字符串/" class="article-date">
-	  <time datetime="2018-08-01T05:26:01.000Z" itemprop="datePublished">2018-08-01</time>
+	  <time datetime="2018-08-01T05:26:01.000Z" itemprop="datePublished">8月 1</time>
 	</a>
 </span>
-        
+    
   <span class="article-category">
     <i class="icon icon-folder"></i>
     <a class="article-category-link" href="/categories/源码阅读/">源码阅读</a>
   </span>
 
-        
+    
   <span class="article-tag">
     <i class="icon icon-tags"></i>
 	<a class="article-tag-link" href="/tags/redis/">redis</a>
   </span>
 
 
-        
-
-        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2018/08/01/redis/1_sds字符串/#comments" class="article-comment-link">评论</a></span>
-        
-      </div>
-    </div>
-    <div class="article-entry markdown-body" itemprop="articleBody">
-      
-        <p>​    Redis中自定义了简单动态字符串，兼容传统C字符串，并提供了一些高效、安全的方法，用于Redis键值对中需要字符串的存储。除了一些日志输出的字面量外，其余需要修改的字符串都以sds作为存储。</p>
-<h3 id="1-定义"><a href="#1-定义" class="headerlink" title="1. 定义"></a>1. 定义</h3><p>sds是char *的别名，指向了存储字符串数组的首地址。</p>
-<p>sdshdr是存储的真正结构，包含len, alloc, flags, buf字段。</p>
-<ul>
-<li>len: 字符串长度，不包含终止字符串’\0’</li>
-<li>alloc: 字符串最大容量，不包含header和最后的’\0’</li>
-<li>flags: 低3bit用于表示header类型，高5bit未使用(sdshdr5中高5bit用于存储字符串长度)</li>
-<li>buf: 存放字符串的内存空间，sds指向该空间的首地址</li>
-</ul>
-<p>为了节省内存，Redis实现了不同大小的sdshdr，用于存储不同长度的字符串</p>
-<ul>
-<li>sdshdr5: 0 ~ 31时使用，没有len,alloc字段，用flags的高5位表示字符串长度</li>
-<li>sdshdr8: 32 ~ 255 时使用</li>
-<li>sdshdr16: 256 ~ 65535 使用</li>
-<li>sdshdr32: 64位机器中，65536 ~ 2^32-1 使用</li>
-<li>sdshdr64: 32位机器中大于65535、64位机器中大于 2^32-1 使用</li>
-</ul>
-<blockquote>
-<p>使用packed属性取消编译器对结构体的字节对齐</p>
-</blockquote>
-<h3 id="2-优势"><a href="#2-优势" class="headerlink" title="2. 优势"></a>2. 优势</h3><ul>
-<li><p>获取字符串长度 O(1)</p>
-<p>传统C字符串使用‘\0’表示字符结尾，使用strlen(s)获取字符串长度，遍历字符串数组并计数，遇到’\0’表示结束并输出字符串长度，时间复杂度为O(N)，SDS字符串在结构体里存储了字符串长度，获取为常数时间O(1)。</p>
-</li>
-<li><p>避免缓存区溢出</p>
-<p>传统C字符串使用strcat拼接时，由于不清楚字符串长度，可能会使用到非分配的内存空间，导致内存溢出，SDS字符串API保证了拼接字符串时若剩余空间不足，则会先分配内存空间，再进行拼接。</p>
-</li>
-<li><p>减少内存分配次数</p>
-<p>传统C字符串进行修改时，会重新分配内存空间，再进行数据拷贝，而SDS字符串采用预分配的方式，每次分配内存大小是需要的2倍(但每次分配不能大于1M，还有额外的’\0’)，SDS字符串缩小时进行数据拷贝并修改len，不释放内存空间，保留原来分配的大小。</p>
-</li>
-<li><p>二进制安全</p>
-<p>传统C字符串只能包含特定编码的数据，而且不能含有空值(‘\0’)，否则会当作字符串截断进行处理，导致C字符串只能保存文本数据，而对于二进制数据(图像、音频、视频等)则无能为力，SDS字符串使用len属性判断字符串结束，故能存储任何数据。</p>
-</li>
-</ul>
-<h3 id="3-源码剖析"><a href="#3-源码剖析" class="headerlink" title="3. 源码剖析"></a>3. 源码剖析</h3><ul>
-<li>sds定义</li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * src/sds.h</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用char *存放字符串，可复用C语言字符串操作库函数，利用该指针指向sdshdr中buf字段。</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">char</span> *sds;   </span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用__attribute__ ((__packed__)) 的作用是取消编译器对结构体进行字节对齐</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// sds结构定义了5中header，分别用于不同长度字符串的存储，从而节省内存。</span></span><br><span class="line"><span class="comment">// len:	  字符串真正长度，不包含终止字符串</span></span><br><span class="line"><span class="comment">// alloc: 字符串最大容量，不包含header和最后终止字符串</span></span><br><span class="line"><span class="comment">// flags: 低3bit用于表示header类型，高5bit未使用</span></span><br><span class="line"><span class="comment">// buf:   连续空间存储，存放字符串的真正内存空间,sds就是指向了该空间的首地址</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">attribute__</span> ((__<span class="title">packed__</span>)) <span class="title">sdshdr5</span> &#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> flags;<span class="comment">// 低3位用于表示header类型，高5位用于字符串长度存储</span></span><br><span class="line">    <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">attribute__</span> ((__<span class="title">packed__</span>)) <span class="title">sdshdr8</span> &#123;</span></span><br><span class="line">    <span class="keyword">uint8_t</span> len;		<span class="comment">// 使用的大小</span></span><br><span class="line">    <span class="keyword">uint8_t</span> alloc;      <span class="comment">// 分配的大小，不包括头部和空字符</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> flags;<span class="comment">// 低3位用于表示header类型，其余5位未使用</span></span><br><span class="line">    <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">attribute__</span> ((__<span class="title">packed__</span>)) <span class="title">sdshdr16</span> &#123;</span></span><br><span class="line">    <span class="keyword">uint16_t</span> len;		<span class="comment">// 使用的大小</span></span><br><span class="line">    <span class="keyword">uint16_t</span> alloc;     <span class="comment">// 分配的大小，不包括头部和空字符</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> flags;<span class="comment">// 低3位用于表示header类型，其余5位未使用</span></span><br><span class="line">    <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">attribute__</span> ((__<span class="title">packed__</span>)) <span class="title">sdshdr32</span> &#123;</span></span><br><span class="line">    <span class="keyword">uint32_t</span> len;		<span class="comment">// 使用的大小</span></span><br><span class="line">    <span class="keyword">uint32_t</span> alloc;     <span class="comment">// 分配的大小，不包括头部和空字符</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> flags;<span class="comment">// 低3位用于表示header类型，其余5位未使用</span></span><br><span class="line">    <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">attribute__</span> ((__<span class="title">packed__</span>)) <span class="title">sdshdr64</span> &#123;</span></span><br><span class="line">    <span class="keyword">uint64_t</span> len;		<span class="comment">// 使用的大小</span></span><br><span class="line">    <span class="keyword">uint64_t</span> alloc;     <span class="comment">// 分配的大小，不包括头部和空字符</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> flags;<span class="comment">// 低3位用于表示header类型，其余5位未使用</span></span><br><span class="line">    <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 用于获取sdshdr的指针,即指针按照头部大小向前偏移就能找到header的指针</span></span><br><span class="line"><span class="meta"># <span class="meta-keyword">define</span> SDS_HDR(T,s) ((struct sdshdr##T *)((s)-(sizeof(struct sdshdr##T))))</span></span><br></pre></td></tr></table></figure>
-<ul>
-<li><p>空间预分配，字符串拼接时内存空间不够</p>
-<ul>
-<li>newlen*2 &gt; SDS_MAX_PREALLOC(1MB)，则分配1MB内存空间</li>
-<li>newlen<em>2 &lt; SDS_MAX_PREALLOC, 则分配newlen </em> 2的内存空间</li>
-</ul>
-<p>若长度改变未导致sdshdr头部类型改变，则需要扩展内存空间大小，否则需要重新分配所有内存，将原有数据拷贝，再释放内存空间。</p>
-</li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * src/sds.c</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**                                                                                                 </span></span><br><span class="line"><span class="comment"> * 扩大sds字符串内存空间，不会修改len大小                                                                            </span></span><br><span class="line"><span class="comment"> */</span>                                                                                                 </span><br><span class="line"><span class="function">sds <span class="title">sdsMakeRoomFor</span><span class="params">(sds s, <span class="keyword">size_t</span> addlen)</span> </span>&#123;                                                          </span><br><span class="line">    <span class="keyword">void</span> *sh, *newsh;                                                                               </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 获取当前可用空间大小                                                                         </span></span><br><span class="line">    <span class="keyword">size_t</span> avail = sdsavail(s);                                                                     </span><br><span class="line">    <span class="keyword">size_t</span> len, newlen;                                                                             </span><br><span class="line">    <span class="keyword">char</span> type, oldtype = s[<span class="number">-1</span>] &amp; SDS_TYPE_MASK;                                                     </span><br><span class="line">    <span class="keyword">int</span> hdrlen;                                                                                     </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">/* Return ASAP if there is enough space left. */</span>                                                </span><br><span class="line">    <span class="comment">// 空间足够则不需要改变                                                                         </span></span><br><span class="line">    <span class="keyword">if</span> (avail &gt;= addlen) <span class="keyword">return</span> s;                                                                  </span><br><span class="line">                                                                                                    </span><br><span class="line">    len = sdslen(s);                                                                                </span><br><span class="line">    <span class="comment">// 获取sds字符串头部hdr                                                                         </span></span><br><span class="line">    sh = (<span class="keyword">char</span>*)s-sdsHdrSize(oldtype);                                                              </span><br><span class="line">    <span class="comment">// 需要的新空间大小                                                                             </span></span><br><span class="line">    newlen = (len+addlen);                                                                          </span><br><span class="line">    <span class="comment">// 每次分配的为新空间大小的2倍，但不能超过每次最大分配内存(1MB)                                 </span></span><br><span class="line">    <span class="keyword">if</span> (newlen &lt; SDS_MAX_PREALLOC)                                                                  </span><br><span class="line">        newlen *= <span class="number">2</span>;                                                                                </span><br><span class="line">    <span class="keyword">else</span>                                                                                            </span><br><span class="line">        newlen += SDS_MAX_PREALLOC;                                                                 </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 根据新长度选择sdshdr类型                                                                     </span></span><br><span class="line">    type = sdsReqType(newlen);                                                                      </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">/* Don't use type 5: the user is appending to the string and type 5 is                          </span></span><br><span class="line"><span class="comment">     * not able to remember empty space, so sdsMakeRoomFor() must be called                         </span></span><br><span class="line"><span class="comment">     * at every appending operation. */</span>                                                             </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 不能使用hdr5,因为没有alloc字段表示剩余空间                                                   </span></span><br><span class="line">    <span class="keyword">if</span> (type == SDS_TYPE_5) type = SDS_TYPE_8;                                                      </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 头部长度                                                                                     </span></span><br><span class="line">    hdrlen = sdsHdrSize(type);                                                                      </span><br><span class="line">    <span class="keyword">if</span> (oldtype==type) &#123;                                                                            </span><br><span class="line">        <span class="comment">// 类型没变，则扩展内存空间                                                                 </span></span><br><span class="line">        newsh = s_realloc(sh, hdrlen+newlen+<span class="number">1</span>);                                                     </span><br><span class="line">        <span class="keyword">if</span> (newsh == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;                                                             </span><br><span class="line">        <span class="comment">// 获取新sds字符串数组(buf)首地址                                                           </span></span><br><span class="line">        s = (<span class="keyword">char</span>*)newsh+hdrlen;                                                                    </span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;          </span><br><span class="line">         <span class="comment">/* Since the header size changes, need to move the string forward,                          </span></span><br><span class="line"><span class="comment">         * and can't use realloc */</span>                                                                 </span><br><span class="line">        <span class="comment">// header类型改变，重新分配内存                                                             </span></span><br><span class="line">        newsh = s_malloc(hdrlen+newlen+<span class="number">1</span>);                                                          </span><br><span class="line">        <span class="keyword">if</span> (newsh == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;                                                             </span><br><span class="line">        <span class="comment">// 将字符串数组拷贝到新空间                                                                 </span></span><br><span class="line">        <span class="built_in">memcpy</span>((<span class="keyword">char</span>*)newsh+hdrlen, s, len+<span class="number">1</span>);                                                      </span><br><span class="line">        <span class="comment">// 释放之前的内存空间                                                                       </span></span><br><span class="line">        s_free(sh);                                                                                 </span><br><span class="line">        <span class="comment">// 获取新sds字符串数组(buf)首地址                                                           </span></span><br><span class="line">        s = (<span class="keyword">char</span>*)newsh+hdrlen;                                                                    </span><br><span class="line">        <span class="comment">// 类型赋值                                                                                 </span></span><br><span class="line">        s[<span class="number">-1</span>] = type;                                                                               </span><br><span class="line">        <span class="comment">// 改变sds长度                                                                              </span></span><br><span class="line">        sdssetlen(s, len);                                                                          </span><br><span class="line">    &#125;                                                                                               </span><br><span class="line">    <span class="comment">// 改变sds字符串alloc                                                                           </span></span><br><span class="line">    sdssetalloc(s, newlen);                                                                         </span><br><span class="line">    <span class="keyword">return</span> s;                                                                                       </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<ul>
-<li>重新分配内存空间，保证没有浪费</li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**                                                                                                 </span></span><br><span class="line"><span class="comment"> * 重新分配内存空间，保证没有浪费                                                                   </span></span><br><span class="line"><span class="comment"> */</span>                                                                                                 </span><br><span class="line"><span class="function">sds <span class="title">sdsRemoveFreeSpace</span><span class="params">(sds s)</span> </span>&#123;                                                                     </span><br><span class="line">    <span class="keyword">void</span> *sh, *newsh;                                                                               </span><br><span class="line">    <span class="keyword">char</span> type, oldtype = s[<span class="number">-1</span>] &amp; SDS_TYPE_MASK;                                                     </span><br><span class="line">    <span class="keyword">int</span> hdrlen, oldhdrlen = sdsHdrSize(oldtype);                                                    </span><br><span class="line">    <span class="keyword">size_t</span> len = sdslen(s);                                                                         </span><br><span class="line">    sh = (<span class="keyword">char</span>*)s-oldhdrlen;                                                                        </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">/* Check what would be the minimum SDS header that is just good enough to                       </span></span><br><span class="line"><span class="comment">     * fit this string. */</span>                                                                          </span><br><span class="line">    <span class="comment">// sds字符串类型和头部长度                                                                      </span></span><br><span class="line">    type = sdsReqType(len);                                                                         </span><br><span class="line">    hdrlen = sdsHdrSize(type);                                                                      </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">/* If the type is the same, or at least a large enough type is still                            </span></span><br><span class="line"><span class="comment">     * required, we just realloc(), letting the allocator to do the copy                            </span></span><br><span class="line"><span class="comment">     * only if really needed. Otherwise if the change is huge, we manually                          </span></span><br><span class="line"><span class="comment">     * reallocate the string to use the different header type. */</span>                                   </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 若未改变类型或者需要一个足够大的类型, 则进行realloc, 否则malloc                                           </span></span><br><span class="line">    <span class="keyword">if</span> (oldtype==type || type &gt; SDS_TYPE_8) &#123;     </span><br><span class="line">        <span class="comment">// 在原有基础上改变内存大小</span></span><br><span class="line">        newsh = s_realloc(sh, oldhdrlen+len+<span class="number">1</span>);                                                     </span><br><span class="line">        <span class="keyword">if</span> (newsh == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;     </span><br><span class="line">        <span class="comment">// 获取新sds字符串数组(buf)首地址    </span></span><br><span class="line">        s = (<span class="keyword">char</span>*)newsh+oldhdrlen;                                                                 </span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;    </span><br><span class="line">        <span class="comment">// 完全重新分配内存空间</span></span><br><span class="line">        newsh = s_malloc(hdrlen+len+<span class="number">1</span>);                                                             </span><br><span class="line">        <span class="keyword">if</span> (newsh == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>; </span><br><span class="line">        <span class="comment">// 拷贝数据</span></span><br><span class="line">        <span class="built_in">memcpy</span>((<span class="keyword">char</span>*)newsh+hdrlen, s, len+<span class="number">1</span>);       </span><br><span class="line">        <span class="comment">// 释放原有内存</span></span><br><span class="line">        s_free(sh);   </span><br><span class="line">        <span class="comment">// 获取新sds字符串数组(buf)首地址    </span></span><br><span class="line">        s = (<span class="keyword">char</span>*)newsh+hdrlen;  </span><br><span class="line">        <span class="comment">// 新类型</span></span><br><span class="line">        s[<span class="number">-1</span>] = type;  </span><br><span class="line">        <span class="comment">// 长度</span></span><br><span class="line">        sdssetlen(s, len);                                                                          </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// avail为0</span></span><br><span class="line">    sdssetalloc(s, len);                                                                            </span><br><span class="line">    <span class="keyword">return</span> s;                                                                                       </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-    <div class="article-footer">
-      <blockquote class="mt-2x">
-  <ul class="post-copyright list-unstyled">
+    <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2018/08/01/redis/1_sds字符串/#comments" class="article-comment-link">评论</a></span>
     
-    <li class="post-copyright-link hidden-xs">
-      <strong>本文链接：</strong>
-      <a href="http://gxcbuf.github.io/2018/08/01/redis/1_sds字符串/" title="Redis源码阅读(一) 简单动态字符串" target="_blank" rel="external">http://gxcbuf.github.io/2018/08/01/redis/1_sds字符串/</a>
-    </li>
-    
-    
-      <li class="post-copyright-license">
-        <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
-      </li>
-    
-  </ul>
-</blockquote>
+  </p>
+</article>
 
+    
+      <article class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+  <div class="article-header">
+    
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/08/01/redis/0_redis源码阅读/">redis源码阅读(零) 概述</a>
+    </h1>
+  
 
-<div class="panel panel-default panel-badger">
-  <div class="panel-body">
-    <figure class="media">
-      <div class="media-left">
-        <a href="https://github.com/gxcbuf" target="_blank" class="img-burn thumb-sm visible-lg">
-          <img src="/images/gxcbuf.jpg" class="img-rounded w-full" alt="">
-        </a>
-      </div>
-      <div class="media-body">
-        <h3 class="media-heading"><a href="https://github.com/gxcbuf" target="_blank"><span class="text-dark">郭欣成</span><small class="ml-1x">Person &amp; Developer</small></a></h3>
-        <div>Make an effort on free.</div>
-      </div>
-    </figure>
   </div>
-</div>
-
-
-    </div>
-  </article>
   
-</div>
+  <p class="article-meta">
+    <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2018/08/01/redis/0_redis源码阅读/" class="article-date">
+	  <time datetime="2018-08-01T04:23:19.000Z" itemprop="datePublished">8月 1</time>
+	</a>
+</span>
+    
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/源码阅读/">源码阅读</a>
+  </span>
 
-  
+    
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link" href="/tags/redis/">redis</a>
+  </span>
+
+
+    <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2018/08/01/redis/0_redis源码阅读/#comments" class="article-comment-link">评论</a></span>
+    
+  </p>
+</article>
+
+    
+  </div>
 
    
 </main>
