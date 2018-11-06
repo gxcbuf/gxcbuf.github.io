@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="LaTeX公式支持有点问题，表格中的东西看着乱了  零 · 系统总览 源码 ===&amp;gt; 二进制  12        预处理 ====&amp;gt;  编译   ====&amp;gt;  汇编  ====&amp;gt;   链接hello.c ====&amp;gt; hello.i ====&amp;gt; hello.s ====&amp;gt; hello.o ====&amp;gt; hello  预处理阶段 预处理器（cpp）将以">
+<meta name="keywords" content="操作系统">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解计算机系统阅读笔记">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/07/22/book/2_深入理解计算机系统/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="LaTeX公式支持有点问题，表格中的东西看着乱了  零 · 系统总览 源码 ===&amp;gt; 二进制  12        预处理 ====&amp;gt;  编译   ====&amp;gt;  汇编  ====&amp;gt;   链接hello.c ====&amp;gt; hello.i ====&amp;gt; hello.s ====&amp;gt; hello.o ====&amp;gt; hello  预处理阶段 预处理器（cpp）将以">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-11-06T08:34:41.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="深入理解计算机系统阅读笔记">
+<meta name="twitter:description" content="LaTeX公式支持有点问题，表格中的东西看着乱了  零 · 系统总览 源码 ===&amp;gt; 二进制  12        预处理 ====&amp;gt;  编译   ====&amp;gt;  汇编  ====&amp;gt;   链接hello.c ====&amp;gt; hello.i ====&amp;gt; hello.s ====&amp;gt; hello.o ====&amp;gt; hello  预处理阶段 预处理器（cpp）将以">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/07/22/book/2_深入理解计算机系统/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>深入理解计算机系统阅读笔记 | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/07/22/book/2_深入理解计算机系统/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/smile.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">深入理解计算机系统阅读笔记
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-07-22 16:22:48" itemprop="dateCreated datePublished" datetime="2018-07-22T16:22:48+08:00">2018-07-22</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-11-06 16:34:41" itemprop="dateModified" datetime="2018-11-06T16:34:41+08:00">2018-11-06</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>LaTeX公式支持有点问题，表格中的东西看着乱了</p>
+</blockquote>
+<h2 id="零-·-系统总览"><a href="#零-·-系统总览" class="headerlink" title="零 · 系统总览"></a>零 · 系统总览</h2><ul>
+<li>源码 ===&gt; 二进制</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">        预处理 ====&gt;  编译   ====&gt;  汇编  ====&gt;   链接</span><br><span class="line">hello.c ====&gt; hello.i ====&gt; hello.s ====&gt; hello.o ====&gt; hello</span><br></pre></td></tr></table></figure>
+<ol>
+<li><p>预处理阶段</p>
+<p>预处理器（cpp）将以#开头的文件展开，插入到源程序，成为新的文件hello.i</p>
+</li>
+<li><p>编译阶段</p>
+<p>编译器（ccl）将文本文件翻译成汇编hello.s</p>
+</li>
+<li><p>汇编阶段</p>
+<p>汇编器（as）将hello.s翻译成机器指令，打包成一种<strong>可重定位目标程序</strong>hello.o</p>
+</li>
+<li><p>链接阶段</p>
+<p>链接器（ld）将hello.o需要的库合并到可执行程序hello中</p>
+</li>
+</ol>
+<h2 id="壹-·-数据表示"><a href="#壹-·-数据表示" class="headerlink" title="壹 · 数据表示"></a>壹 · 数据表示</h2><h3 id="I-·-信息存储"><a href="#I-·-信息存储" class="headerlink" title="I · 信息存储"></a>I · 信息存储</h3><blockquote>
+<p>计算机最小的可寻址单元为字节(byte)，由8个bit位组成。</p>
+</blockquote>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">二进制</th>
+<th style="text-align:center">十进制</th>
+<th style="text-align:center">十六进制</th>
+<th style="text-align:center">二进制</th>
+<th style="text-align:center">十进制</th>
+<th style="text-align:center">十六进制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">0000</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">1000</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+</tr>
+<tr>
+<td style="text-align:center">0001</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">1001</td>
+<td style="text-align:center">9</td>
+<td style="text-align:center">9</td>
+</tr>
+<tr>
+<td style="text-align:center">0010</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">1010</td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">A</td>
+</tr>
+<tr>
+<td style="text-align:center">0011</td>
+<td style="text-align:center">3</td>
+<td style="text-align:center">3</td>
+<td style="text-align:center">1011</td>
+<td style="text-align:center">11</td>
+<td style="text-align:center">B</td>
+</tr>
+<tr>
+<td style="text-align:center">0100</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">1100</td>
+<td style="text-align:center">12</td>
+<td style="text-align:center">C</td>
+</tr>
+<tr>
+<td style="text-align:center">0101</td>
+<td style="text-align:center">5</td>
+<td style="text-align:center">5</td>
+<td style="text-align:center">1101</td>
+<td style="text-align:center">13</td>
+<td style="text-align:center">D</td>
+</tr>
+<tr>
+<td style="text-align:center">0110</td>
+<td style="text-align:center">6</td>
+<td style="text-align:center">6</td>
+<td style="text-align:center">1110</td>
+<td style="text-align:center">14</td>
+<td style="text-align:center">E</td>
+</tr>
+<tr>
+<td style="text-align:center">0111</td>
+<td style="text-align:center">7</td>
+<td style="text-align:center">7</td>
+<td style="text-align:center">1111</td>
+<td style="text-align:center">15</td>
+<td style="text-align:center">F</td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p>计算机使用指针数据的标称大小作为字长，对于字长为$\omega$的机器，其寻址范围为0 ~ $2^\omega - 1$.</p>
+</blockquote>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">数据类型</th>
+<th style="text-align:center">32位</th>
+<th style="text-align:center">64位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">char</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">char *(指针)</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">8</td>
+</tr>
+<tr>
+<td style="text-align:center">short</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">2</td>
+</tr>
+<tr>
+<td style="text-align:center">int</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">4</td>
+</tr>
+<tr>
+<td style="text-align:center">int_32</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">4</td>
+</tr>
+<tr>
+<td style="text-align:center">Int_64</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+</tr>
+<tr>
+<td style="text-align:center">long</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">8</td>
+</tr>
+<tr>
+<td style="text-align:center">float</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">4</td>
+</tr>
+<tr>
+<td style="text-align:center">double</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p>大小端序，大端：从高位到低位排列（类似书写方式）小端： 从低位到高位排列。</p>
+<p>在一般机器中都是采用小端存储</p>
+</blockquote>
+<ul>
+<li><p>基本逻辑运算</p>
+<ul>
+<li>与 &amp; ：<code>A=1</code> 且 <code>B=1</code> 时，<code>A&amp;B = 1</code></li>
+<li>或 |： <code>A=1</code> 或 <code>B=1</code> 时，<code>A|B = 1</code></li>
+<li>非 ~：<code>A=1</code> 时，<code>~A=0</code>；<code>A=0</code> 时，<code>~A=1</code></li>
+<li>异或 ^：<code>A=1</code> 或 <code>B=1</code> 时，<code>A^B = 1</code>；<code>A=1</code> 且 <code>B=1</code> 时，<code>A^B = 0</code></li>
+</ul>
+</li>
+<li><p>C语言中的逻辑运算</p>
+<ul>
+<li>与 &amp;&amp;</li>
+<li>或 ||</li>
+<li>非 ！</li>
+</ul>
+</li>
+<li><p>C语言移位运算</p>
+<p>左移：高位移出，低位补零</p>
+<p>逻辑右移：低位移出，高位补零</p>
+<p>算术右移：低位移出，高位补有效位</p>
+</li>
+</ul>
+<h3 id="II-·-整数表示"><a href="#II-·-整数表示" class="headerlink" title="II · 整数表示"></a>II · 整数表示</h3><blockquote>
+<p>整数类型有$\omega$位，用向量$\vec{x}$表示每一位$[x_{w-1}, x_{w-2}, … , x_0]$</p>
+</blockquote>
+<ul>
+<li>无符号数编码</li>
+</ul>
+<p>对于向量$\vec{x} = [x_{w-1}, x_{w-2}, …, x_0]$</p>
+<p>​                        <script type="math/tex">B2U_w(\vec{x}) = \sum_{i=0}^{w-1}x_i2^i</script></p>
+<ul>
+<li>补码</li>
+</ul>
+<p>对于向量$\vec{x} = [x_{w-1}, x_{w-2}, …, x_0]$</p>
+<p>​                        <script type="math/tex">B2T_w(\vec{x}) =-x_{w-1}2^{w-1} +  \sum_{i=0}^{w-2}x_i2^i</script></p>
+<p>补码所能表示的最小值为$[1000…]$, 权值为负，其余为0， $TMin_w = - 2^{w-1}$</p>
+<p>补码所能表示的最大值为$[0111…]$, 权值为正，其余为1， $TMax_w = 2^{w-1} - 1$</p>
+<blockquote>
+<p>补码的范围是不对称的：$|TMin| = |TMax| +1$，TMin没有与之对应的正数，因为符号位为0表示正数而符号位为1表示负数，0又是非负数，故补码锁能表示的正数比负数少一个。</p>
+</blockquote>
+<ul>
+<li><p>反码</p>
+<p>​                    <script type="math/tex">B2O_w(\vec{x}) =-x_{w-1}(2^{w-1} - 1) + \sum_{i=0}^{w-2}x_i2^i</script></p>
+</li>
+<li><p>原码</p>
+<p>​                    <script type="math/tex">B2S_w(\vec{x}) =(-1)^{x_{w-1}} \cdot\sum_{i=0}^{w-2}x_i2^i</script> </p>
+</li>
+</ul>
+<blockquote>
+<p>反码和原码表示时，0有不同的表示法</p>
+<p>原码：$[000…]$ 表示+0， $[100…]$表示-0</p>
+<p>反码：$[000…]$ 表示+0， $[111…]$表示-0</p>
+</blockquote>
+<ul>
+<li><p>有符号数和无符号数的转换（数值改变但位模式不变）</p>
+<ul>
+<li>补码转无符号数</li>
+</ul>
+<p>对满足 $TMin_w \leq x \leq TMax_w$ :</p>
+<p>​                    <script type="math/tex">T2U_w(x) = \begin{cases} x + 2^w,  & {x < 0} \\ x, & {x \geq 0} \end{cases}</script></p>
+<p>​    <script type="math/tex">B2U_w(T2B_w(x)) = T2U_w(x) = x + x_{w-1}2^w</script></p>
+<ul>
+<li>无符号数转补码</li>
+</ul>
+<p>对满足$0 \leq u \leq UMax_w$ :</p>
+<p>​                    <script type="math/tex">U2T_w(u) = \begin{cases} u, & {u \leq TMin_w} \\ u - 2^w, & {u > TMax_w} \end{cases}</script></p>
+<p>​    $ U2T_w(u) = -u_{w-1}2^w + u $</p>
+</li>
+<li><p>扩展</p>
+<ul>
+<li>无符号数：高位补零</li>
+<li>补码：高位补符号位</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">short</span> sx = <span class="number">-123456</span>;</span><br><span class="line"><span class="keyword">unsigned</span> uy = sx;</span><br><span class="line"><span class="comment">// 当把short转换为unsigned时，先改变大小，在把有符号转换为无符号</span></span><br><span class="line"><span class="comment">// (unsigned)sx ==&gt; (unsigned)(int)sx</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>截断</p>
+<ul>
+<li>无符号数：高位截断k位  $x = x \ mod \ 2^k$</li>
+<li>补码：按无符号数截断，转换为补码即可</li>
+</ul>
+</li>
+</ul>
+<h3 id="III-·-整数运算"><a href="#III-·-整数运算" class="headerlink" title="III · 整数运算"></a>III · 整数运算</h3><ul>
+<li>无符号加法</li>
+</ul>
+<p>对于$ 0 \leq x, y &lt; 2^w $ 有：</p>
+<p>​                <script type="math/tex">x + y =  \begin{cases} x + y, & x + y < 2^w & （正常） \\ x + y-2^w, & 2^w \leq x + y < 2^{w+1} &（溢出）\end{cases}</script></p>
+<p>检测无符号数加法的溢出:</p>
+<p>​    <script type="math/tex">对于在范围 0\leq x, y \leq UMax_w 中的x和y，令s = x + y, 当前仅当s\leq x(或s \leq y)时，发生了溢出</script></p>
+<blockquote>
+<p>两个数相加结果小于其中一个则发生了溢出</p>
+</blockquote>
+<ul>
+<li><p>无符号求反</p>
+<p>  ​            <script type="math/tex">- x = \begin{cases} x, & x = 0 \\ 2^w - x, & x > 0 \end{cases}</script>        </p>
+<p>  ​            </p>
+</li>
+<li><p>补码加法</p>
+</li>
+</ul>
+<p>对于$ -2^{w-1} \leq x, y \leq 2^{w-1} - 1 $有：</p>
+<p>​                <script type="math/tex">x + y = \begin{cases} x + y - 2^w, & 2^{w-1} \leq x + y & （正溢出）\\ x + y, & -2^{w-1} \leq x + y < 2^{w-1}  &（正常） \\ x + y + 2^w, & x + y \leq -2 ^{w-1} & （负溢出） \end{cases}</script></p>
+<blockquote>
+<p>简单来说就是，正溢出时减去最大值，负溢出时加上最大值</p>
+</blockquote>
+<p>检测补码加法的溢出：</p>
+<p>​                $ 对满足Tmin_w \leq x, y \leq TMax_w的x和y, 令s=x+y. \\当且仅当x&gt;0,y&gt;0,但s \leq 0 时，发生了正溢出 \\ 当且仅当x&lt;0, y&lt;0, 但s \geq 0 时，发生了负溢出 $    </p>
+<ul>
+<li>无符号乘法</li>
+</ul>
+<p>对$ 0 \leq x, y \leq UMax_w$ 有：</p>
+<p>​                $ x * y = (x \cdot y) \ mod \ 2^w $</p>
+<ul>
+<li>补码乘法</li>
+</ul>
+<blockquote>
+<p>补码乘法与无符号乘法类似，只是将无符号转换为补码即可</p>
+<p>无符号乘法与补码乘法的位级不同但截断后相同，故等价</p>
+</blockquote>
+<h3 id="IV-·-浮点数"><a href="#IV-·-浮点数" class="headerlink" title="IV · 浮点数"></a>IV · 浮点数</h3><ul>
+<li><p>IEEE浮点数（$ V = (-1)^s <em> M </em> 2^e $）</p>
+<ul>
+<li>符号：s决定这个数是正数还是负数</li>
+<li>尾数：M是一个二进制小数，范围是 0~1或1~2</li>
+<li>阶码：E对浮点数加权</li>
+<li>符号位单独编码s占一位</li>
+<li>k位阶码字段exp= $e_{k-1} … e_1e_0$  (float中k=8， double中k=11)</li>
+<li>n位小数字段frac=$f_{n-1}…f_1f_0$  (float中n=23， double中n=52)</li>
+</ul>
+<ol>
+<li><p>规格化的值</p>
+<p>阶码exp不全为0也不全为</p>
+</li>
+<li><p>非规格化的值</p>
+<p>阶码exp全0</p>
+</li>
+<li><p>特殊值</p>
+<p>阶码exp全1，尾数全0表示无穷，s决定正无穷或负无穷；</p>
+<p>阶码exp全1，尾数非0表示“NaN”</p>
+</li>
+</ol>
+</li>
+</ul>
+<h2 id="贰·机器指令"><a href="#贰·机器指令" class="headerlink" title="贰·机器指令"></a>贰·机器指令</h2><h3 id="I-·-数据格式"><a href="#I-·-数据格式" class="headerlink" title="I · 数据格式"></a>I · 数据格式</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">C声明</th>
+<th style="text-align:center">Intel数据类型</th>
+<th style="text-align:center">汇编代码后缀</th>
+<th style="text-align:center">大小（字节）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">char</td>
+<td style="text-align:center">字节</td>
+<td style="text-align:center">b</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">short</td>
+<td style="text-align:center">字</td>
+<td style="text-align:center">w</td>
+<td style="text-align:center">2</td>
+</tr>
+<tr>
+<td style="text-align:center">int</td>
+<td style="text-align:center">双字</td>
+<td style="text-align:center">l</td>
+<td style="text-align:center">4</td>
+</tr>
+<tr>
+<td style="text-align:center">long</td>
+<td style="text-align:center">四字</td>
+<td style="text-align:center">q</td>
+<td style="text-align:center">8</td>
+</tr>
+<tr>
+<td style="text-align:center">char *</td>
+<td style="text-align:center">四字</td>
+<td style="text-align:center">q</td>
+<td style="text-align:center">8</td>
+</tr>
+<tr>
+<td style="text-align:center">float</td>
+<td style="text-align:center">单精度</td>
+<td style="text-align:center">s</td>
+<td style="text-align:center">4</td>
+</tr>
+<tr>
+<td style="text-align:center">double</td>
+<td style="text-align:center">双精度</td>
+<td style="text-align:center">l</td>
+<td style="text-align:center">8</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>数据传送指令有四个变种：movb(字节)、movw(字)、movl(双字)、movq(四字)。汇编代码使用movl来传送4字节int和8字节double但不冲突，因为使用的是完全不同的指令和寄存器。</p>
+<h3 id="II-·-数据指令"><a href="#II-·-数据指令" class="headerlink" title="II · 数据指令"></a>II · 数据指令</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">64位寄存器</th>
+<th style="text-align:center">32位寄存器</th>
+<th style="text-align:center">16位寄存器</th>
+<th style="text-align:center">8位寄存器</th>
+<th style="text-align:center">一般作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">%rax</td>
+<td style="text-align:center">%eax</td>
+<td style="text-align:center">%ax</td>
+<td style="text-align:center">%al</td>
+<td style="text-align:center">返回值</td>
+</tr>
+<tr>
+<td style="text-align:center">%rbx</td>
+<td style="text-align:center">%ebx</td>
+<td style="text-align:center">%bx</td>
+<td style="text-align:center">%bl</td>
+<td style="text-align:center">被调用者保存</td>
+</tr>
+<tr>
+<td style="text-align:center">%rcx</td>
+<td style="text-align:center">%ecx</td>
+<td style="text-align:center">%cx</td>
+<td style="text-align:center">%cl</td>
+<td style="text-align:center">第四个参数</td>
+</tr>
+<tr>
+<td style="text-align:center">%rdx</td>
+<td style="text-align:center">%edx</td>
+<td style="text-align:center">%dx</td>
+<td style="text-align:center">%dl</td>
+<td style="text-align:center">第三个参数</td>
+</tr>
+<tr>
+<td style="text-align:center">%rsi</td>
+<td style="text-align:center">%esi</td>
+<td style="text-align:center">%si</td>
+<td style="text-align:center">%sil</td>
+<td style="text-align:center">第二个参数</td>
+</tr>
+<tr>
+<td style="text-align:center">%rdi</td>
+<td style="text-align:center">%edi</td>
+<td style="text-align:center">%di</td>
+<td style="text-align:center">%dil</td>
+<td style="text-align:center">第一个参数</td>
+</tr>
+<tr>
+<td style="text-align:center">%rbp</td>
+<td style="text-align:center">%ebp</td>
+<td style="text-align:center">%bp</td>
+<td style="text-align:center">%bpl</td>
+<td style="text-align:center">被调用者保存</td>
+</tr>
+<tr>
+<td style="text-align:center">%rsp</td>
+<td style="text-align:center">%esp</td>
+<td style="text-align:center">%sp</td>
+<td style="text-align:center">%spl</td>
+<td style="text-align:center">栈指针</td>
+</tr>
+<tr>
+<td style="text-align:center">%r8</td>
+<td style="text-align:center">%r8d</td>
+<td style="text-align:center">%r8w</td>
+<td style="text-align:center">%r8b</td>
+<td style="text-align:center">第五个参数</td>
+</tr>
+<tr>
+<td style="text-align:center">%r9</td>
+<td style="text-align:center">%r9d</td>
+<td style="text-align:center">%r9w</td>
+<td style="text-align:center">%r9b</td>
+<td style="text-align:center">第六个参数</td>
+</tr>
+<tr>
+<td style="text-align:center">%r10</td>
+<td style="text-align:center">%r10d</td>
+<td style="text-align:center">%r10w</td>
+<td style="text-align:center">%r10b</td>
+<td style="text-align:center">调用者保存</td>
+</tr>
+<tr>
+<td style="text-align:center">%r11</td>
+<td style="text-align:center">%r11d</td>
+<td style="text-align:center">%r11w</td>
+<td style="text-align:center">%r11b</td>
+<td style="text-align:center">调用者保存</td>
+</tr>
+<tr>
+<td style="text-align:center">%r12</td>
+<td style="text-align:center">%r12d</td>
+<td style="text-align:center">%r12w</td>
+<td style="text-align:center">%r12b</td>
+<td style="text-align:center">被调用者保存</td>
+</tr>
+<tr>
+<td style="text-align:center">%r13</td>
+<td style="text-align:center">%r13d</td>
+<td style="text-align:center">%r13w</td>
+<td style="text-align:center">%r13b</td>
+<td style="text-align:center">被调用者保存</td>
+</tr>
+<tr>
+<td style="text-align:center">%r14</td>
+<td style="text-align:center">%r14d</td>
+<td style="text-align:center">%r14w</td>
+<td style="text-align:center">%r14b</td>
+<td style="text-align:center">被调用者保存</td>
+</tr>
+<tr>
+<td style="text-align:center">%r15</td>
+<td style="text-align:center">%r15d</td>
+<td style="text-align:center">%r15w</td>
+<td style="text-align:center">%r15b</td>
+<td style="text-align:center">被调用者保存</td>
+</tr>
+<tr>
+<td style="text-align:center">段寄存器</td>
+<td style="text-align:center">————————-</td>
+<td style="text-align:center">————————</td>
+<td style="text-align:center">———————-</td>
+<td style="text-align:center">—————————</td>
+</tr>
+<tr>
+<td style="text-align:center">CS</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">代码段寄存器</td>
+</tr>
+<tr>
+<td style="text-align:center">DS</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">数据段寄存器</td>
+</tr>
+<tr>
+<td style="text-align:center">SS</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">堆栈段寄存器</td>
+</tr>
+<tr>
+<td style="text-align:center">ES</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">附加段寄存器</td>
+</tr>
+<tr>
+<td style="text-align:center">FS</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">标志段寄存器</td>
+</tr>
+<tr>
+<td style="text-align:center">GS</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">全局段寄存器</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><p>操作数</p>
+<ul>
+<li><p>立即数</p>
+<p>用来表示常数值，AT&amp;T中为$$Imm$，如$0x1f</p>
+</li>
+<li><p>寄存器</p>
+<p>$r_a$表示任意寄存器a，$R[r_a]$表示引用它的值</p>
+</li>
+<li><p>内存引用</p>
+<p>$M_b[Addr]$ 表示对存储在内存地址Addr开始的b个字节的引用</p>
+</li>
+</ul>
+<p>|  类型  |       格式       |             操作数值             |       名称        |<br>| :——: | :———————: | :———————————————: | :———————-: |<br>| 立即数 |     $$Imm$      |              $Imm$               |    立即数寻址     |<br>| 寄存器 |      $r_a$       |             $R[r_a]$             |    寄存器寻址     |<br>| 存储器 |      $Imm$       |             $M[Imm]$             |     绝对寻址      |<br>| 存储器 |     $(r_a)$      |           $M[R[r_a]]$            |     间接寻址      |<br>| 存储器 |    $Imm(r_b)$    |         $M[Imm+R[r_b]]$          | (基址+偏移量)寻址 |<br>| 存储器 |   $(r_b, r_i)$   |        $M[R[r_b]+R[r_i]]$        |     变址寻址      |<br>| 存储器 |  $Imm(r_b,r_i)$  |      $M[Imm+R[r_b]+R[r_i]]$      |     变址寻址      |<br>| 存储器 |    $(,r_i,s)$    |        $M[R[r_i]\cdot s]$        |   比例变址寻址    |<br>| 存储器 |  $Imm(,r_i,s)$   |      $M[Imm+R[r_i]\cdot s]$      |   比例变址寻址    |<br>| 存储器 |  $(r_b, r_i,s)$  |    $M[R[r_b]+R[r_i] \cdot s]$    |   比例变址寻址    |<br>| 存储器 | $Imm(r_b,r_i,s)$ | $M[Imm + R[r_b]+R[r_i] \cdot s]$ |   比例变址寻址    |</p>
+<blockquote>
+<p>比例因子必须是1、2、4、8</p>
+</blockquote>
+</li>
+<li><p>数据传送指令</p>
+<p>|     指令      |  效果   |          描述           |<br>| :—————-: | :——-: | :——————————-: |<br>|   MOV  S, D   | D &lt;== S |          传送           |<br>|     movb      |         |    传送字节（8bit）     |<br>|     movw      |         |     传送字（16bit）     |<br>|     movl      |         |    传送双字（32bit）    |<br>|     movq      |         |    传送四字（64bit）    |<br>| movabsq  I, R | R &lt;== I | 传送绝对的四字（64bit） |</p>
+<blockquote>
+<p>常规movq只能以32位补码的立即数作为源操作数，movabsq指令能以任意64位立即数作为源操作数，且只能以寄存器作为目的</p>
+</blockquote>
+<ul>
+<li>MOVZ类指令扩展填充0</li>
+</ul>
+<p>|    指令    |       效果        |         描述         |<br>| :————: | :———————-: | :—————————: |<br>| MOVZ  S, R | R &lt;== 零扩展（S） |     以零扩展传送     |<br>|   movzbw   |                   |  零扩展字节传送到字  |<br>|   movzbl   |                   | 零扩展字节传送到双字 |<br>|   movzwl   |                   |  零扩展字传送到双字  |<br>|   movzbq   |                   | 零扩展字节传送到四字 |<br>|   movzwq   |                   |  零扩展字传送到四字  |</p>
+<ul>
+<li>MOVS类指令扩展填充符号位</li>
+</ul>
+<p>|    指令    |           效果            |          描述          |<br>| :————: | :———————————-: | :——————————: |<br>| MOVS  S, R |    R &lt;== 符号扩展（S）    |     以符号扩展传送     |<br>|   movsbw   |                           |  符号扩展字节传送到字  |<br>|   movsbl   |                           | 符号扩展字节传送到双字 |<br>|   movsbq   |                           | 符号扩展字节传送到四字 |<br>|   movswl   |                           |  符号扩展字传送到双字  |<br>|   movswq   |                           |  符号扩展字传送到四字  |<br>|   movslq   |                           | 符号扩展双字传送到四字 |<br>|    cltq    | %rax &lt;== 符号扩展（%eax） |   %eax符号扩展到%rax   |</p>
+</li>
+<li><p>入栈出栈</p>
+<p>| 指令  |                             效果                             |     描述     |<br>| :—-: | :—————————————————————————————: | :—————: |<br>| pushq | $ R[\%rsp]  \leftarrow R[\%rsp]-8; \\ M[R[\%rsp]] \leftarrow S$ | 将四字节入栈 |<br>| popq  | $ D \leftarrow M[R[\%rsp]]; \\ R[\%rsp] \leftarrow R[\%rsp] + 8 $ | 将四字节出栈 |</p>
+<blockquote>
+<p>栈向下增长，故栈顶元素地址为最低地址，压栈是减小栈指针（%rsp）的值</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="III-·-算术和逻辑运算"><a href="#III-·-算术和逻辑运算" class="headerlink" title="III · 算术和逻辑运算"></a>III · 算术和逻辑运算</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">指令</th>
+<th style="text-align:center">效果</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">leaq  S, D</td>
+<td style="text-align:center">$ D \leftarrow \&amp;S $</td>
+<td style="text-align:center">加载有效地址</td>
+</tr>
+<tr>
+<td style="text-align:center">INC D</td>
+<td style="text-align:center">$ D \leftarrow D + 1 $</td>
+<td style="text-align:center">加1</td>
+</tr>
+<tr>
+<td style="text-align:center">DEC D</td>
+<td style="text-align:center">$ D \leftarrow D - 1 $</td>
+<td style="text-align:center">减1</td>
+</tr>
+<tr>
+<td style="text-align:center">NEG D</td>
+<td style="text-align:center">$ D \leftarrow -D $</td>
+<td style="text-align:center">取负</td>
+</tr>
+<tr>
+<td style="text-align:center">NOT D</td>
+<td style="text-align:center">$ D \leftarrow  $ ~ $ D $</td>
+<td style="text-align:center">取补</td>
+</tr>
+<tr>
+<td style="text-align:center">ADD S, D</td>
+<td style="text-align:center">$ D \leftarrow D + S$</td>
+<td style="text-align:center">加</td>
+</tr>
+<tr>
+<td style="text-align:center">SUB S, D</td>
+<td style="text-align:center">$ D \leftarrow D - S $</td>
+<td style="text-align:center">减</td>
+</tr>
+<tr>
+<td style="text-align:center">IMUL S, D</td>
+<td style="text-align:center">$ D \leftarrow D * S $</td>
+<td style="text-align:center">乘</td>
+</tr>
+<tr>
+<td style="text-align:center">XOR S, D</td>
+<td style="text-align:center">$ D \leftarrow D$ ^ $ S $</td>
+<td style="text-align:center">异或</td>
+</tr>
+<tr>
+<td style="text-align:center">OR S, D</td>
+<td style="text-align:center">$ D \leftarrow D \</td>
+<td style="text-align:center">\ S$</td>
+<td>或</td>
+</tr>
+<tr>
+<td style="text-align:center">AND S, D</td>
+<td style="text-align:center">$ D \leftarrow D \ \&amp; \ S $</td>
+<td style="text-align:center">与</td>
+</tr>
+<tr>
+<td style="text-align:center">SAL k, D</td>
+<td style="text-align:center">$ D \leftarrow D &lt;&lt; k$</td>
+<td style="text-align:center">左移</td>
+</tr>
+<tr>
+<td style="text-align:center">SHL k, D</td>
+<td style="text-align:center">$ D\leftarrow D &lt;&lt; k$</td>
+<td style="text-align:center">左移（等同SAL）</td>
+</tr>
+<tr>
+<td style="text-align:center">SAR k, D</td>
+<td style="text-align:center">$ D \leftarrow D &gt;&gt;_A k$</td>
+<td style="text-align:center">算术右移（补最高位）</td>
+</tr>
+<tr>
+<td style="text-align:center">SHR k, D</td>
+<td style="text-align:center">$ D \leftarrow D &gt;&gt;_L k$</td>
+<td style="text-align:center">逻辑右移（补0）</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><p>加载有效地址</p>
+<p>leaq指令从内存读数据到寄存器，但本身并未引用内存，第一个操作数看似内存引用，实则将有效地址写入到目的操作数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">scale</span><span class="params">(<span class="keyword">long</span> x, <span class="keyword">long</span> y, <span class="keyword">long</span> z)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> t = x + <span class="number">4</span> * y + <span class="number">12</span> * z;</span><br><span class="line">    <span class="keyword">return</span> t;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 产生汇编</span></span><br><span class="line"><span class="comment">scale:</span></span><br><span class="line"><span class="comment">	leaq (%rdi, %rsi, 4), %rax    //  x + 4 * y</span></span><br><span class="line"><span class="comment">    leaq (%rdx, %rdx, 2), %rdx 	  //  z + 2 * z = 3*z</span></span><br><span class="line"><span class="comment">    leaq (%rax, %rdx, 4), %rax    // (x + 4*y) + 4*(3*z) = x + 4*y + 12*z</span></span><br><span class="line"><span class="comment">    ret</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>一元和二元操作</p>
+<p>一元操作，操作数既是源又是目的，可以是寄存器也可以是内存地址</p>
+<p>二元操作，第二个操作数既是源又是目的，第一个操作数可以是立即数、寄存器或内存地址，第二个操作数可以是寄存器或内存地址。</p>
+<blockquote>
+<p>若目的操作数是内存地址，那么处理器需要从内存中读出数据执行计算后再写回</p>
+</blockquote>
+</li>
+<li><p>移位操作</p>
+<p>移位量可以是个立即数，或单字节寄存器%cl，移位量由寄存器%cl的低m位决定，高位被忽略。若%cl位0XFF时，salb移7位，salw移15位，sall移31位，salq移63位。</p>
+</li>
+<li><p>特殊算术操作</p>
+<p>|   命令   |                             效果                             |     描述     |<br>| :———: | :—————————————————————————————: | :—————: |<br>| imulq  S |         $ R[\%rdx]: R[\%rax] \leftarrow S<em>R[\%rax] $         | 有符号全乘法 |<br>| mulq  S  |        $ R[\%rdx]: R[\%rax] \leftarrow S </em> R[\%rax] $        | 无符号全乘法 |<br>|   ctlo   |    $ R[\%rdx]: R[\%rax] \leftarrow 符号扩展位(R[\%rax]) $    |  转换为8字   |<br>| idivq S  | $ R[\%rdx] \leftarrow R[\%rdx]: R[\%rax] \ mod \ S \\ R[\%rax] \leftarrow R[\%rdx]: R[\%rax] \div S$ |  有符号除法  |<br>|  divq S  | $R[\%rdx] \leftarrow R[\%rdx]: R[\%rax] \ mod \ S \\ R[\%rax] \leftarrow R[\%rdx]: R[\%rax] \div S$ |  无符号除法  |</p>
+</li>
+</ul>
+<h3 id="IV-·-控制指令"><a href="#IV-·-控制指令" class="headerlink" title="IV · 控制指令"></a>IV · 控制指令</h3><ul>
+<li><p>条件码</p>
+<ul>
+<li>CF：进位标志，最高位产生进位，用来检测无符号操作溢出</li>
+<li>ZF：零标志，最近的操作得出结果为0</li>
+<li>SF：符号标志，最近操作得出结果为负</li>
+<li>OF：溢出标志，最近操作导致补码溢出（正或负）</li>
+</ul>
+<blockquote>
+<p>leaq指令不改变任何条件码，因为它是用来进行地址计算的</p>
+</blockquote>
+<p>|           指令           |           描述            |<br>| :———————————: | :———————————-: |<br>| CMP  S1, S2  (S2  -  S1) | 与SUB一样，但只设置条件码 |<br>|  TEST S1, S2  (S1 &amp; S2)  | 与AND一样，但只设置条件码 |</p>
+</li>
+<li><p>访问条件码</p>
+<p>|  指令   | 同义名 |          效果          |       设置条件       |<br>| :——-: | :——: | :——————————: | :—————————: |<br>| sete D  |  setz  |        D &lt;== ZF        |       相等/零        |<br>| setne D | setnz  |       D &lt;== ~ZF        |      不等/非零       |<br>| sets D  |        |        D &lt;== SF        |         负数         |<br>| setns D |        |       D &lt;== ~SF        |        非负数        |<br>| setg D  | setnle | D &lt;== ~(SF ^ OF) &amp; ~ZF |    大于（有符号）    |<br>| setge D | setnl  |    D &lt;== ~(SF ^ OF)    |   大于等于(有符号)   |<br>| setl D  | setnge |     D &lt;== SF ^ OF      |    小于（有符号）    |<br>| setle D | setng  | D &lt;== (SF ^ OF) | ZF  |  小于等于（有符号）  |<br>| seta D  | setnbe |    D &lt;== ~CF &amp; ~ZF     |    超过（无符号）    |<br>| setae D | setnb  |       D &lt;== ~CF        | 超过或等于（无符号） |<br>| setb D  | setnae |        D &lt;== CF        |    低于（无符号）    |<br>| setbe D | setna  |     D &lt;== CF | ZF     | 低于或等于（无符号） |</p>
+</li>
+<li><p>跳转指令</p>
+<p>|     指令     | 同义名 |     跳转条件     |         描述         |<br>| :—————: | :——: | :———————: | :—————————: |<br>|  jmp Label   |        |        1         |       直接跳转       |<br>| jmp *Operand |        |        1         |       间接跳转       |<br>|   je Label   |   jz   |        ZF        |       相等/零        |<br>|  jne Label   |  jnz   |       ~ZF        |      不相等/零       |<br>|   js Label   |        |        SF        |         负数         |<br>|  jns Label   |        |       ~SF        |        非负数        |<br>|   jg Label   |  jnle  | ~(SF ^ OF) &amp; ~ZF |    大于（有符号）    |<br>|  jge Label   |  jnl   |    ~(SF ^ OF)    | 大于或等于（有符号） |<br>|   jl Label   |  jnge  |     SF ^ OF      |    小于（有符号）    |<br>|  jle Label   |  jng   | (SF ^ OF) | ZF  | 小于或等于（有符号） |<br>|   ja Label   |  jnbe  |    ~CF &amp; ~ZF     |    超过（无符号）    |<br>|  jae Label   |  jnb   |       ~CF        | 超过或相等（无符号） |<br>|   jb Label   |  jnae  |        CF        |    低于（无符号）    |<br>|  jbe Label   |  jna   |     CF | ZF     | 低于或相等（无符号） |</p>
+<blockquote>
+<p>jmp 直接跳转到给定的标签，或间接跳转到寄存器、内存给出的地址</p>
+<p>在汇编代码中，跳转目标用符号标号，通常而言，目标指令的地址与跳转指令后的指令地址差作为目标指令的编码</p>
+</blockquote>
+<p>cmo 指令是条件传送指令，源和目的可以是16位、32位、64位。</p>
+<blockquote>
+<p>处理器采用<strong>分支预测逻辑</strong>猜测每条跳转指令是否会执行，猜测错误会导致处理器回到起始填充流水线，浪费时钟周期，所以基于条件数据传送的代码性能会优于基于条件控制转移的代码。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="V-·-过程指令"><a href="#V-·-过程指令" class="headerlink" title="V · 过程指令"></a>V · 过程指令</h3><ul>
+<li><p>运行时栈</p>
+<p>例如：过程P调用过程Q。</p>
+<p>P在高地址拥有自己的栈空间，P调用Q时，P以及所有P以上的调用链都是被挂起的，并将控制和数据信息添加到栈尾，返回地址位于最尾端，用于Q返回时从P的哪个位置开始。一般而言，x86_64过程只分配自己所需要的栈帧，若调用参数在6个以内，直接通过寄存器传递，不需要额外的栈帧。</p>
+</li>
+<li><p>转移控制</p>
+<p>从函数P转移到函数Q需要把程序计数器（PC）设置为Q的代码起始位置，但同时应记录P下一地址。指令call会将P要执行的地址压栈，将PC设置为Q的起始位置。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"># last(long u, long v)</span><br><span class="line"># u in %rdi, v in %rsi</span><br><span class="line">&lt;last&gt;:</span><br><span class="line">	mov 	%rdi, %rax		# L1: u</span><br><span class="line">	imul	%rsi, %rax		# L2: u * v</span><br><span class="line">	retq					# L3: return</span><br><span class="line"># first(long x)</span><br><span class="line"># x in %rdi</span><br><span class="line">&lt;first&gt;:</span><br><span class="line">	lea		0x1(%rdi), %rsi	# F1: x+1</span><br><span class="line">	sub		$0x1, %rdi		# F2: x-1</span><br><span class="line">	callq	&lt;last&gt;			# F3: last(x-1, x+1)</span><br><span class="line">	repz retq				# F4: return</span><br><span class="line">	</span><br><span class="line"># main</span><br><span class="line">&lt;main&gt;:</span><br><span class="line">	...</span><br><span class="line">	callq	&lt;first&gt;			# M1: first(10)</span><br><span class="line">	mov		%rax, %rdx		# M2: resume</span><br></pre></td></tr></table></figure>
+<p>| 标号 |    PC    |   指令    | %rdi | %rsi | %rax |      %rsp      |  *%rsp   |      描述       |<br>| :—: | :———: | :———-: | :—: | :—: | :—: | :——————: | :———: | :——————-: |<br>|  M1  | 0x40056  |   callq   |  10  |  -   |  -   | 0x7fffffffe820 |    -     |  调用first(10)  |<br>|  F1  | 0x400548 |    lea    |  10  |  -   |  -   | 0x7fffffffe818 | 0x400565 |    first入口    |<br>|  F2  | 0x40054c |    sub    |  10  |  11  |  -   | 0x7fffffffe818 | 0x400565 |                 |<br>|  F3  | 0x400550 |   callq   |  9   |  11  |  -   | 0x7fffffffe818 | 0x400565 | 调用last(9, 11) |<br>|  L1  | 0x400540 |    mov    |  9   |  11  |  -   | 0x7fffffffe810 | 0x400555 |    last入口     |<br>|  L2  | 0x400543 |   imul    |  9   |  11  |  9   | 0x7fffffffe810 | 0x400555 |                 |<br>|  L3  | 0x400547 |   retq    |  9   |  11  |  99  | 0x7fffffffe810 | 0x400555 |  从last返回99   |<br>|  F4  | 0x400555 | repz retq |  9   |  11  |  99  | 0x7fffffffe818 | 0x400565 |  从first返回99  |<br>|  M2  | 0x400565 |    mov    |  9   |  11  |  99  | 0x7fffffffe820 |    -     |  继续执行main   |</p>
+</li>
+<li><p>栈上的局部存储</p>
+<p>寄存器能存放6个参数，不够的分配栈帧进行存储</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">swap_add</span><span class="params">(<span class="keyword">long</span> *xp, <span class="keyword">long</span> *yp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> x = *xp;</span><br><span class="line">    <span class="keyword">long</span> y = *yp;</span><br><span class="line">    *xp = y;</span><br><span class="line">    *yp = x;</span><br><span class="line">    <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">caller</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> arg1 = <span class="number">534</span>;</span><br><span class="line">    <span class="keyword">long</span> arg2 = <span class="number">1057</span>;</span><br><span class="line">    <span class="keyword">long</span> sum = swap_add(&amp;arg1, &amp;arg2);</span><br><span class="line">    <span class="keyword">long</span> diff = arg1 - arg2;</span><br><span class="line">    <span class="keyword">return</span> sum * diff;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面c代码对应的汇编</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"># long caller()</span><br><span class="line">caller:</span><br><span class="line">	subq	$16, %rsp		# 栈地址减小16表明分配16bytes的栈帧</span><br><span class="line">	movq	$534, (%rsp)	# 栈帧初始位置存放arg1,将534存入</span><br><span class="line">	movq	$1057, 8(%rsp)	# 1057存入arg2</span><br><span class="line">	leaq	8(%rsp), %rsi	# arg2的地址加载到%rsi</span><br><span class="line">	movq	%rsp, %rdi		# %rsp的数据(arg1的地址)加载到%rdi</span><br><span class="line">	call	swap_add		# 调用swap_add(&amp;arg1, &amp;arg2)</span><br><span class="line">	movq	(%rsp), %rdx	# 获取arg1</span><br><span class="line">	subq	8(%rsp), %rdx	# diff = arg1 - arg2</span><br><span class="line">	imulq	%rdx, %rax		# %rax存放的是swap_add返回的数据，sum * diff</span><br><span class="line">	addq	$16, %rsp		# 释放栈空间</span><br><span class="line">	ret						# return</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>寄存器上的局部存储</p>
+<p>根据惯例，寄存器%rbx、%rbp和%r12~%r15被划分为 <strong>被调用者保存</strong> 寄存器。函数调用过程中，必须保证这些寄存器值不被修改，或者入栈后返回时在出栈。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">long P(long x, long y) &#123;</span><br><span class="line">    long u = Q(y);</span><br><span class="line">    long v = Q(x);</span><br><span class="line">    return u + v;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"># long P(long x, long y)</span><br><span class="line"># x in %rdi, y in %rsi</span><br><span class="line">P:</span><br><span class="line">	pushq	%rbp		# 保存%rbp的值</span><br><span class="line">	pushq	%rbx		# 保存%rbx的值</span><br><span class="line">	subq	$8, %rsp	# 对齐栈帧</span><br><span class="line">	movq	%rdi, %rbp	# 使用%rbp保存x</span><br><span class="line">	movq	%rsi, %rdi	# 将y放到第一个参数</span><br><span class="line">	call	Q			# 调用Q(y)</span><br><span class="line">	movq	%rax, %rbx	# 返回值保存到%rbx</span><br><span class="line">	movq 	%rbp, %rdi	# 将x放到第一个参数</span><br><span class="line">	call	Q			# 调用Q(x)</span><br><span class="line">	addq	%rbx, %rax	# u + v</span><br><span class="line">	addq	$8, %rsp	# 释放保存寄存器值的区域</span><br><span class="line">	popq	%rbx		# 存储保存到栈上的值</span><br><span class="line">	popq	%rbp</span><br><span class="line">	ret</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>递归过程</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">long rfact(long n) &#123;</span><br><span class="line">    long result;</span><br><span class="line">    if (n &lt;= 1)</span><br><span class="line">    	result = 1;</span><br><span class="line">    else</span><br><span class="line">    	result = n * rfact(n-1);</span><br><span class="line">    return result;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"># long rfact(long n)</span><br><span class="line">rfact:</span><br><span class="line">	pushq	%rbx			# 入栈%rbx</span><br><span class="line">	movq	%rdi, %rbx		# n保存到%rbx寄存器中</span><br><span class="line">	movl	$1, %eax		# result = 1</span><br><span class="line">	cmpq	$1, %rdi		# 比较 n : 1</span><br><span class="line">	jle		.L35			# if n &lt;= 1 goto .L35</span><br><span class="line">	leaq	-1(%rdi), %rdi	# (n-1) 放到第一个参数</span><br><span class="line">	call	rfact			# 调用 rfact(n-1)</span><br><span class="line">	imulq	%rbx, %rax		# 调用后的返回值 * n</span><br><span class="line">.L35:</span><br><span class="line">	popq	%rbx			# 出栈%rbx</span><br><span class="line">	ret</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="VI-·-数组"><a href="#VI-·-数组" class="headerlink" title="VI · 数组"></a>VI · 数组</h3><h3 id="VII-·-异质数据结构"><a href="#VII-·-异质数据结构" class="headerlink" title="VII · 异质数据结构"></a>VII · 异质数据结构</h3><h3 id="VIII-·-控制与数据的结合"><a href="#VIII-·-控制与数据的结合" class="headerlink" title="VIII · 控制与数据的结合"></a>VIII · 控制与数据的结合</h3><ul>
+<li><p>GDB调试</p>
+<p>|           命令           |                             效果                             |<br>| :———————————: | :—————————————————————————————: |<br>|        开始和停止        | ————————————————————————————————————— |<br>|           quit           |                           退出GDB                            |<br>|           run            |                  运行程序（给出命令行参数）                  |<br>|           kill           |                           停止程序                           |<br>|           断点           | ————————————————————————————————————— |<br>|        break func        |                     在函数入口处设置断点                     |<br>|       break <em>0x400       |                      在该地址处设置断点                      |<br>|         delete 1         |                          删除断点1                           |<br>|          delete          |                         删除所有断点                         |<br>|           执行           | ————————————————————————————————————— |<br>|          stepi           |                         执行1条指令                          |<br>|         stepi 4          |                         执行4条指令                          |<br>|          nexti           |                     以函数为单位的下一条                     |<br>|         continue         |                           继续执行                           |<br>|          finish          |                      运行到当前函数返回                      |<br>|         检查代码         | ————————————————————————————————————— |<br>|          disas           |                        反汇编当前函数                        |<br>|        disas func        |                        反汇编指定函数                        |<br>|       disas 0x123        |                    反汇编该地址附近的函数                    |<br>|      disas 0x1, 0x2      |                   反汇编指定地址范围的函数                   |<br>|      print /x $rip       |                      以16进制输出PC的值                      |<br>|         检查数据         | ————————————————————————————————————— |<br>|        print $rax        |                     以10进制输出rax的值                      |<br>|      print /x $rax       |                         以16进制输出                         |<br>|      print /t $rax       |                         以二进制输出                         |<br>|       print 0x100        |                    输出0x100的十进制表示                     |<br>|       print /x 555       |                    输出555的十六进制表示                     |<br>|    print /x ($rsp+8)     |                   以16进制输出rsp+8的内容                    |<br>|  print </em> (long <em>) 0x100  |                 以10进制输出0x100处的长整型                  |<br>| print </em> (long *)($rsp+8) |                 以10进制输出rsp+8处的长整型                  |<br>|        x/2g 0x100        |                  检查从地址0x100开始的双字                   |<br>|        x/20b func        |                     检查函数前的20个字节                     |<br>|        有用的信息        | ————————————————————————————————————— |<br>|        info frame        |                       有关当前帧的信息                       |<br>|      info registers      |                       所有寄存器的信息                       |<br>|           help           |                           帮助信息                           |</p>
+</li>
+<li><p>内存越界和缓冲区溢出</p>
+<p>C语言对数组引用不进行边界检查，而且由于局部变量和状态信息都存放在栈帧中，若数组越界可能会访问到一些重要的区域以致程序崩溃，如返回地址等。</p>
+</li>
+<li><p>对抗缓存区溢出攻击</p>
+<ul>
+<li><p>栈随机化</p>
+<p>在Linux系统中，栈随机化已经成为标准，称之为<strong>地址空间布局随机化（ASLR）</strong>，这样每次运行程序的不同部分其所有空间都会加载到不同区域。</p>
+</li>
+<li><p>栈破坏检测</p>
+<p>GCC加入了一种栈保护者机制，通过在栈帧中局部缓冲区和栈状态间加一个哨兵，在恢复寄存器状态和从函数返回之前，检查该哨兵是否被改变，如果被改变则程序异常终止。</p>
+</li>
+<li><p>限制可执行代码区域</p>
+<p>通过限制可执行代码的存放区域来限制攻击者的方式，将栈的可读和可执行分开。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="IX-·-浮点数"><a href="#IX-·-浮点数" class="headerlink" title="IX · 浮点数"></a>IX · 浮点数</h3><ul>
+<li><p>数据传送和转换</p>
+<p>|  指令   |  源  | 目的 |           描述           |<br>| :——-: | :—: | :—: | :———————————: |<br>| vmovss  | M32  |  X   |      传送单精度数据      |<br>| vmovss  |  X   | M32  |      传送单精度数据      |<br>| vmovsd  | M64  |  X   |      传送双精度数据      |<br>| vmovsd  |  X   | M64  |      传送双精度数据      |<br>| vmovaps |  X   |  X   | 传送对齐的封装好的单精度 |<br>| vmovapd |  X   |  X   | 传送对齐的封装好的双精度 |</p>
+</li>
+<li><p>运算</p>
+<p>| 单精度 | 双精度 |              效果              |     描述     |<br>| :——: | :——: | :——————————————: | :—————: |<br>| vaddss | vaddsd |   $ D \leftarrow S_2 + S_1 $   |    浮点加    |<br>| vsubss | vsubsd |   $ D \leftarrow S_2 - S_1 $   |    浮点减    |<br>| vmulss | vmulsd |   $ D \leftarrow S_2 * S_1 $   |    浮点乘    |<br>| vdivss | vdivsd |   $ D \leftarrow S_2 / S_1 $   |    浮点除    |<br>| vmaxss | vmaxsd | $ D \leftarrow max(S_2, S_1) $ |    最大值    |<br>| vminss | vminsd | $ D \leftarrow min(S_2, S_1) $ |    最小值    |<br>| sqrtss | sqrtsd |  $ D \leftarrow \sqrt{S_1} $   | 浮点数平方根 |</p>
+</li>
+<li><p>位操作</p>
+<p>| 单精度 | 双精度 |               效果                |   描述   |<br>| :——: | :——: | :———————————————-: | :———: |<br>| vxorps | vxorpd | $ D \leftarrow S_2 \text{^} S_1 $ | 位级异或 |<br>| vandps | vandpd | $ D \leftarrow S_2 \text{&amp;} S_1 $ |  位级与  |</p>
+</li>
+<li><p>比较</p>
+<p>|      指令       |  基于   |    描述    |<br>| :——————-: | :——-: | :————: |<br>| ucomiss S1, S2  | S2 - S1 | 比较单精度 |<br>| ucomissd S1, S2 | S2 - S1 | 比较双精度 |</p>
+</li>
+</ul>
+<h2 id="叁-·-指令体系结构"><a href="#叁-·-指令体系结构" class="headerlink" title="叁 · 指令体系结构"></a>叁 · 指令体系结构</h2><blockquote>
+<p>一个处理器支持的指令和指令级编码称为它的<strong><em>指令集体系结构</em></strong>。</p>
+</blockquote>
+<h2 id="肆-·-程序性能"><a href="#肆-·-程序性能" class="headerlink" title="肆 · 程序性能"></a>肆 · 程序性能</h2><blockquote>
+<p>CPE（每元素周期数）用于度量程序的性能。</p>
+</blockquote>
+<h3 id="I-·-编译器优化"><a href="#I-·-编译器优化" class="headerlink" title="I · 编译器优化"></a>I · 编译器优化</h3><p>GCC编译器使用-Og表示基本优化，-O1(-O2或-O3)表示更高级别的优化，通常来说一般使用-O1进行优化。</p>
+<blockquote>
+<p>编译器必须进行安全的优化，对于结果不能预期的指令，便不能优化。包含函数调用的代码可以通过内联进行优化，但GCC仅尝试在单个文件中定义函数的内联。</p>
+</blockquote>
+<h3 id="II-·-程序优化"><a href="#II-·-程序优化" class="headerlink" title="II · 程序优化"></a>II · 程序优化</h3><ul>
+<li><p>高级设计</p>
+<p>选择适当的算法和数据结构</p>
+</li>
+<li><p>基本编码原则</p>
+<ul>
+<li>消除连续的函数调用。将固定计算移到循环外</li>
+<li>消除不必要的内存引用。使用临时变量保存中间结果。</li>
+</ul>
+</li>
+<li><p>低级优化</p>
+<ul>
+<li>展开循环</li>
+<li>累积变量和重新结合，提供指令级并行</li>
+<li>用功能性重新条件操作，使编译器采用条件数据传送</li>
+</ul>
+</li>
+</ul>
+<h2 id="伍-·-存储器"><a href="#伍-·-存储器" class="headerlink" title="伍 · 存储器"></a>伍 · 存储器</h2><h3 id="I-·-存储技术"><a href="#I-·-存储技术" class="headerlink" title="I · 存储技术"></a>I · 存储技术</h3><ul>
+<li><p>随机访问存储器(RAM)</p>
+<ul>
+<li><p>静态（SRAM）</p>
+<p>用于做高速缓存，可用在CPU芯片上</p>
+</li>
+<li><p>动态（DRAM）</p>
+<p>用来做主存以及图形系统缓冲区</p>
+</li>
+<li><p>传统DRAM</p>
+<p>DRAM芯片中的单元被分成d个超单元supercell，每个超单元由w个DRAM单元组成。</p>
+</li>
+<li><p>增强的DRAM</p>
+<ul>
+<li>快页模式（FPM DRAM）</li>
+<li>扩展数据输出（EDO DRAM）</li>
+<li>同步（SDRAM）</li>
+<li>双倍数据速率同步（DDR SDRAM）</li>
+<li>视频（VRAM）</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>磁盘储存</p>
+<ul>
+<li><p>磁盘构造</p>
+<p>磁盘有盘片组成，每个表面覆盖着磁性记录材料，盘片中央有个可旋转主轴，使得盘面以固定速率旋转，通常5400~15000每分钟，磁盘通常包含一个或多个这样的盘片。</p>
+<p>每个表面由一组称为磁道的同心圆组成，每个磁道被划分为一组扇区，每个扇区包含相等数据位（通常为512字节）。扇区之间由一些间隙分隔开，用于标识扇区的格式化位。</p>
+</li>
+<li><p>磁盘容量</p>
+<ul>
+<li>记录密度（位/英寸）</li>
+<li>磁道密度（道/英寸）</li>
+<li>面密度（位/平方英寸）</li>
+</ul>
+</li>
+<li><p>磁盘操作</p>
+<p>磁盘用读写头来读写存储在磁性表面上的位，读写头连接到一个传动臂，通过该机械臂的移动访问盘面上的任何磁道，该操作称之为寻道。磁盘以扇区大小的块来读写数据，访问时间由三部分组成：寻道时间、旋转时间、传送时间。</p>
+<ul>
+<li><p>寻道时间</p>
+<p>寻找目标扇区的磁道，移动传动臂所需要的时间</p>
+</li>
+<li><p>旋转时间</p>
+<p>寻道城后，驱动器等待目标扇区第一位旋转到读写头下所需要的时间</p>
+</li>
+<li><p>传送时间</p>
+<p>找到目标后，驱动器就可以读取数据内容了</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>固态硬盘</p>
+<p>固态硬盘是一种基于闪存的存储技术，由一个或多个闪存芯片和闪存翻译层组成，读快于写，数据以页为单位，只有在一页所属的整个块被擦出后才能继续写，但在大约100000次擦除后，该块就会磨损以致无法使用，所以厂商会做平均磨损延长使用寿命。</p>
+</li>
+</ul>
+<h3 id="II-·-局部性"><a href="#II-·-局部性" class="headerlink" title="II · 局部性"></a>II · 局部性</h3><p>时间局部性：被引用过一次的内存位置很可能在不久后被多次引用。</p>
+<p>空间局部性：被引用过一次的内存位置很可能在不久后引用其附近位置。</p>
+<h2 id="陆-·-链接"><a href="#陆-·-链接" class="headerlink" title="陆 · 链接"></a>陆 · 链接</h2><blockquote>
+<p>链接是将各种代码和数据片段收集并组合到单一文件的过程，这个文件可被加载到内存并执行。</p>
+<p>链接可以执行于编译时，即源代码被翻译成机器代码时。</p>
+<p>链接可以执行于加载时，即程序被加载器加载到内存执行。</p>
+<p>链接可以执行于运行时，即应用程序来执行。</p>
+</blockquote>
+<h3 id="I-·-静态链接"><a href="#I-·-静态链接" class="headerlink" title="I · 静态链接"></a>I · 静态链接</h3><blockquote>
+<p>静态链接器（如ld）以一组可重定位目标文件和命令行参数作为输入，生成一个完整链接的、可以加载和运行的可执行目标文件作为输出。输入的可重定位目标文件由各种不同的代码和数据section组成，每一个section都是一个连续的字节序列。</p>
+</blockquote>
+<p>为了构造可执行文件，链接器必须完成两个主要任务：</p>
+<ul>
+<li><p>符号解析</p>
+<p>目标文件定义和符号引用，每个符号对应于一个函数、一个全局变量或一个静态变量。符号解析的目的是将每个符号引用正好和一个符号定义关联起来。</p>
+</li>
+<li><p>重定位</p>
+<p>编译器和汇编器生成从地址0开始的代码和数据section，链接器通过把每个符号定义与一个内存位置关联起来，从而重定位这些section，然后修改所有对这些符号的引用，使其指向这个内存位置。链接器使用汇编器产生的重定位条目的详细指令，不加甄别地执行这样的重定位。</p>
+</li>
+</ul>
+<h3 id="II-·-目标文件"><a href="#II-·-目标文件" class="headerlink" title="II · 目标文件"></a>II · 目标文件</h3><ul>
+<li><p>可重定位目标文件</p>
+<p>包含二进制代码和数据，可在编译时与其他可定位目标文件合并起来，创建一个可执行目标文件。</p>
+</li>
+<li><p>可执行目标文件</p>
+<p>包含二进制代码和数据，可直接加载到内存执行。</p>
+</li>
+<li><p>共享目标文件</p>
+<p>一种特殊的可重定位目标文件，可在加载或运行时动态地加载进内存并链接。</p>
+</li>
+</ul>
+<h3 id="III-·-可重定位目标文件"><a href="#III-·-可重定位目标文件" class="headerlink" title="III · 可重定位目标文件"></a>III · 可重定位目标文件</h3><p>ELF头以一个16字节的序列开始，这个序列描述了生成该文件的系统的字大小和字节顺序。ELF头剩下的部分包含帮助链接器语法分析和解释目标文件的信息。ELF头和头部表之间都是section。</p>
+<ul>
+<li><p>.text</p>
+<p>已编译程序的机器代码</p>
+</li>
+<li><p>.rodata</p>
+<p>只读数据，如printf中的格式串和switch语句中的跳转表</p>
+</li>
+<li><p>.data</p>
+<p>已初始化的全局和静态C变量。局部C变量在运行时被保存在栈中，不在.data也不在.bss</p>
+</li>
+<li><p>.bss</p>
+<p>未初始化的全局和静态C变量，以及所有被初始化为0的全局或静态变量。在目标文件中，这个section不占实际的空间，仅是一个占位符，区分初始化与未初始化是为了空间效率。</p>
+</li>
+<li><p>.symtab</p>
+<p>一个符号表，存放程序中定义和引用的函数和全局变量的信息，但不包含局部变量。</p>
+</li>
+<li><p>.rel.text</p>
+<p>一个.text中位置的列表，当链接器把这个目标文件和其他文件组合时，需要修改这些位置。</p>
+</li>
+<li><p>.rel.data</p>
+<p>被模块引用或定义的所有全局变量的重定位信息，一般来说，任何已初始化的全局变量，若它的初始值是一个全局变量地址或外部定义函数的地址，都需要修改。</p>
+</li>
+<li><p>.debug</p>
+<p>一个调试符号表，包含了程序中定义的局部变量和类型定义，已经定义和引用的全局变量和c源文件，只有添加-g选项编译时，才会产生这张表。</p>
+</li>
+<li><p>.line</p>
+<p>原始C程序的行号和.text中机器指令之间的映射，只有添加-g编译时，才会产生。</p>
+</li>
+<li><p>.strtab</p>
+<p>一个字符串表，包括.stmtab和.debug中的符号表，已经section名称</p>
+</li>
+</ul>
+<h3 id="IV-·-符号和符号表"><a href="#IV-·-符号和符号表" class="headerlink" title="IV · 符号和符号表"></a>IV · 符号和符号表</h3><p>每个可重定位目标模块m都有一个符号表，包含其定义和引用的符号的信息。</p>
+<ul>
+<li>由模块m定义并能被其他模块引用的全局符号。全局链接器符号对应非静态C函数和全局变量。</li>
+<li>由其他模块定义被模块m引用的全局符号。称之为外部符号，对应其他模块中非静态的C函数和全局变量。</li>
+<li>只被模块m定义和引用的局部符号，对应带有static属性的C函数和全局变量。</li>
+</ul>
+<blockquote>
+<p>利用static属性可以将全局变量和函数仅在该模块内使用，不公开。</p>
+</blockquote>
+<h3 id="V-·-符号解析"><a href="#V-·-符号解析" class="headerlink" title="V · 符号解析"></a>V · 符号解析</h3><p>链接器将每个引用与它输入的可重定位目标文件的符号表中的一个确定的符号定义关联起来，编译器只允许每个模块中的每个局部符号唯一，但对于全局符号引用则会相当棘手。</p>
+<blockquote>
+<p>C++和Java中的函数重载，对于不同参数相同名称的函数，编译器会将其重整，生成一个新的名字，这个过程叫重整，相反过程叫恢复</p>
+</blockquote>
+<ul>
+<li><p>链接器如何解析多重定义的全局符号（强符号：已初始化的全局变量和函数；弱符号：未初始化的全局变量）</p>
+<ul>
+<li>规则1：不允许多个同名的强符号</li>
+<li>规则2：如果有一个强符号和多个弱符号同名，选择强符号</li>
+<li>规则3：如果有多个弱符号同名，那么任意选择一个</li>
+</ul>
+</li>
+<li><p>与静态库链接</p>
+<blockquote>
+<p>所有的编译系统都提供一种机制，将所有相关的目标模块打包成一个单独的文件，称之为静态库。</p>
+</blockquote>
+<p>在链接时，链接器将只复制被程序引用的目标模块，在Linux中，静态库以一种归档文件的方式存储*.a</p>
+</li>
+<li><p>链接器如何使用静态库来解析</p>
+</li>
+</ul>
+<h3 id="VI-·-重定位"><a href="#VI-·-重定位" class="headerlink" title="VI · 重定位"></a>VI · 重定位</h3><p>链接器完成了符号解析后，代码中的每个符号引用会和符号定义关联起来，然后可以开始重定位</p>
+<ul>
+<li><p>重定位section和符号定义</p>
+<p>链接器将所有相同类型的section合并为一个新的section，链接器将运行时的内存地址赋值给新的section以及每个符号，这一步完成时，程序中的每条指令和全局变量都有唯一的运行时内存地址。</p>
+</li>
+<li><p>重定位section中的符号引用</p>
+<p>链接器修改代码section和数据section中对每个符号的引用，使它们指向正确的运行时地址。执行这一步需要依赖可重定位条目。</p>
+</li>
+<li><p>重定位条目</p>
+<p>汇编器遇到对最终位置位置的目标引用会产生一个重定位条目，告诉链接器在将目标文件合并成可执行文件时如何修改这个引用，代码的重定位条目放在.rel.text中，已初始化数据的重定位条目放在.rel.data中</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    <span class="keyword">long</span> offset;	<span class="comment">// 需要被修改的偏移</span></span><br><span class="line">    <span class="keyword">long</span> type:<span class="number">32</span>,   <span class="comment">// 告知链接器如何修改新的引用</span></span><br><span class="line">    	 symbol:<span class="number">32</span>; <span class="comment">// 标识被修改引用指向的符号</span></span><br><span class="line">    <span class="keyword">long</span> addend;    <span class="comment">// 一个有符号常数</span></span><br><span class="line">&#125; Elf64_Rela;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>R_X86_64_PC32: 重定位一个使用32位PC相对地址的引用，即距离PC的偏移量</li>
+<li>R_X86_64_32: 重定位32位绝对地址的引用。</li>
+</ul>
+</li>
+</ul>
+<h3 id="VII-·-ELF-文件"><a href="#VII-·-ELF-文件" class="headerlink" title="VII · ELF 文件"></a>VII · <a href="https://en.wikipedia.org/wiki/Executable_and_Linkable_Format" target="_blank" rel="noopener">ELF 文件</a></h3><p>每个ELF文件包含3部分，Program header table、Section header table、Data referred</p>
+<ul>
+<li>File Header<ul>
+<li>e_type</li>
+<li>e_machine</li>
+<li>e_version</li>
+<li>e_entry</li>
+<li>e_phoff</li>
+<li>e_shoff</li>
+<li>e_flags</li>
+<li>e_ehsize</li>
+<li>e_phentsize</li>
+<li>e_phnum</li>
+<li>e_shentsize</li>
+<li>e_shnum</li>
+<li>e_shstrndx</li>
+</ul>
+</li>
+<li>program header<ul>
+<li>p_type</li>
+<li>p_flags</li>
+<li>p_offset</li>
+<li>p_vaddr</li>
+<li>p_paddr</li>
+<li>p_filesz</li>
+<li>p_memsz</li>
+<li>p_flags</li>
+<li>p_flags</li>
+</ul>
+</li>
+<li>section header<ul>
+<li>sh_name</li>
+<li>sh_type</li>
+<li>sh_flags</li>
+<li>sh_addr</li>
+<li>sh_offset</li>
+<li>sh_size</li>
+<li>sh_link</li>
+<li>sh_info</li>
+<li>sh_addralign</li>
+<li>sh_entsize</li>
+</ul>
+</li>
+</ul>
+<h2 id="柒-·-异常控制流"><a href="#柒-·-异常控制流" class="headerlink" title="柒 · 异常控制流"></a>柒 · 异常控制流</h2><h2 id="捌-·-虚拟内存"><a href="#捌-·-虚拟内存" class="headerlink" title="捌 · 虚拟内存"></a>捌 · 虚拟内存</h2><h2 id="玖-·-系统I-O"><a href="#玖-·-系统I-O" class="headerlink" title="玖 · 系统I/O"></a>玖 · 系统I/O</h2><h2 id="拾-·-网络编程"><a href="#拾-·-网络编程" class="headerlink" title="拾 · 网络编程"></a>拾 · 网络编程</h2><h2 id="拾壹-·-并发编程"><a href="#拾壹-·-并发编程" class="headerlink" title="拾壹 · 并发编程"></a>拾壹 · 并发编程</h2><h2 id="实验"><a href="#实验" class="headerlink" title="实验"></a>实验</h2><h3 id="Lab1-Data"><a href="#Lab1-Data" class="headerlink" title="Lab1 Data"></a>Lab1 Data</h3><ul>
+<li>部分已做</li>
+</ul>
+<h3 id="Lab2-Bomb"><a href="#Lab2-Bomb" class="headerlink" title="Lab2 Bomb"></a>Lab2 Bomb</h3><ul>
+<li>phase 1 2 3 4已做， 5 6未做</li>
+</ul>
+<h3 id="Lab3-Attack"><a href="#Lab3-Attack" class="headerlink" title="Lab3 Attack"></a>Lab3 Attack</h3><ul>
+<li>未做</li>
+</ul>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/操作系统/" rel="tag"># 操作系统</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/06/13/book/1_TCP_IP协议卷一/" rel="next" title="TCP/IP协议卷一阅读笔记">
+                <i class="fa fa-chevron-left"></i> TCP/IP协议卷一阅读笔记
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/01/redis/0_redis源码阅读/" rel="prev" title="redis源码阅读(零) 概述">
+                redis源码阅读(零) 概述 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/smile.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">2</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#零-·-系统总览"><span class="nav-number">1.</span> <span class="nav-text">零 · 系统总览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#壹-·-数据表示"><span class="nav-number">2.</span> <span class="nav-text">壹 · 数据表示</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-信息存储"><span class="nav-number">2.1.</span> <span class="nav-text">I · 信息存储</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-整数表示"><span class="nav-number">2.2.</span> <span class="nav-text">II · 整数表示</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#III-·-整数运算"><span class="nav-number">2.3.</span> <span class="nav-text">III · 整数运算</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IV-·-浮点数"><span class="nav-number">2.4.</span> <span class="nav-text">IV · 浮点数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#贰·机器指令"><span class="nav-number">3.</span> <span class="nav-text">贰·机器指令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-数据格式"><span class="nav-number">3.1.</span> <span class="nav-text">I · 数据格式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-数据指令"><span class="nav-number">3.2.</span> <span class="nav-text">II · 数据指令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#III-·-算术和逻辑运算"><span class="nav-number">3.3.</span> <span class="nav-text">III · 算术和逻辑运算</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IV-·-控制指令"><span class="nav-number">3.4.</span> <span class="nav-text">IV · 控制指令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#V-·-过程指令"><span class="nav-number">3.5.</span> <span class="nav-text">V · 过程指令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#VI-·-数组"><span class="nav-number">3.6.</span> <span class="nav-text">VI · 数组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#VII-·-异质数据结构"><span class="nav-number">3.7.</span> <span class="nav-text">VII · 异质数据结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#VIII-·-控制与数据的结合"><span class="nav-number">3.8.</span> <span class="nav-text">VIII · 控制与数据的结合</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IX-·-浮点数"><span class="nav-number">3.9.</span> <span class="nav-text">IX · 浮点数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#叁-·-指令体系结构"><span class="nav-number">4.</span> <span class="nav-text">叁 · 指令体系结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#肆-·-程序性能"><span class="nav-number">5.</span> <span class="nav-text">肆 · 程序性能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-编译器优化"><span class="nav-number">5.1.</span> <span class="nav-text">I · 编译器优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-程序优化"><span class="nav-number">5.2.</span> <span class="nav-text">II · 程序优化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#伍-·-存储器"><span class="nav-number">6.</span> <span class="nav-text">伍 · 存储器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-存储技术"><span class="nav-number">6.1.</span> <span class="nav-text">I · 存储技术</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-局部性"><span class="nav-number">6.2.</span> <span class="nav-text">II · 局部性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#陆-·-链接"><span class="nav-number">7.</span> <span class="nav-text">陆 · 链接</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-·-静态链接"><span class="nav-number">7.1.</span> <span class="nav-text">I · 静态链接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#II-·-目标文件"><span class="nav-number">7.2.</span> <span class="nav-text">II · 目标文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#III-·-可重定位目标文件"><span class="nav-number">7.3.</span> <span class="nav-text">III · 可重定位目标文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IV-·-符号和符号表"><span class="nav-number">7.4.</span> <span class="nav-text">IV · 符号和符号表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#V-·-符号解析"><span class="nav-number">7.5.</span> <span class="nav-text">V · 符号解析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#VI-·-重定位"><span class="nav-number">7.6.</span> <span class="nav-text">VI · 重定位</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#VII-·-ELF-文件"><span class="nav-number">7.7.</span> <span class="nav-text">VII · ELF 文件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#柒-·-异常控制流"><span class="nav-number">8.</span> <span class="nav-text">柒 · 异常控制流</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#捌-·-虚拟内存"><span class="nav-number">9.</span> <span class="nav-text">捌 · 虚拟内存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#玖-·-系统I-O"><span class="nav-number">10.</span> <span class="nav-text">玖 · 系统I/O</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#拾-·-网络编程"><span class="nav-number">11.</span> <span class="nav-text">拾 · 网络编程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#拾壹-·-并发编程"><span class="nav-number">12.</span> <span class="nav-text">拾壹 · 并发编程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实验"><span class="nav-number">13.</span> <span class="nav-text">实验</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Lab1-Data"><span class="nav-number">13.1.</span> <span class="nav-text">Lab1 Data</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Lab2-Bomb"><span class="nav-number">13.2.</span> <span class="nav-text">Lab2 Bomb</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Lab3-Attack"><span class="nav-number">13.3.</span> <span class="nav-text">Lab3 Attack</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+    
+      <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      },
+      TeX: {equationNumbers: { autoNumber: "AMS" }}
+    });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+    
+  
+
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

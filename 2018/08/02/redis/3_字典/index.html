@@ -116,7 +116,7 @@
 <meta property="og:site_name" content="孰能生巧">
 <meta property="og:description" content="字典，又称符号表、关联数组、映射(map)是一种保存K/V队的抽象数据结构。字典中每个key都是唯一的，而且能在常数时间O(1)获取key对应的值。 1. 定义 哈希表结点 key  保存键值对中的键 v  保存键值对中的值，类型可以为void *, uint64_t等，使用union节省内存 next  保存下一个哈希表结点，解决冲突时产生一个链表    12345678910typedef s">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2018-08-02T08:56:58.000Z">
+<meta property="og:updated_time" content="2018-08-06T04:35:03.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Redis源码阅读(三) 字典">
 <meta name="twitter:description" content="字典，又称符号表、关联数组、映射(map)是一种保存K/V队的抽象数据结构。字典中每个key都是唯一的，而且能在常数时间O(1)获取key对应的值。 1. 定义 哈希表结点 key  保存键值对中的键 v  保存键值对中的值，类型可以为void *, uint64_t等，使用union节省内存 next  保存下一个哈希表结点，解决冲突时产生一个链表    12345678910typedef s">
@@ -361,12 +361,24 @@
                 
               
 
-              <time title="创建时间：2018-08-02 13:34:58 / 修改时间：16:56:58" itemprop="dateCreated datePublished" datetime="2018-08-02T13:34:58+08:00">2018-08-02</time>
+              <time title="创建时间：2018-08-02 13:34:58" itemprop="dateCreated datePublished" datetime="2018-08-02T13:34:58+08:00">2018-08-02</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-08-06 12:35:03" itemprop="dateModified" datetime="2018-08-06T12:35:03+08:00">2018-08-06</time>
               
             
           </span>
@@ -662,7 +674,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">24</span>
+                    <span class="site-state-item-count">26</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -677,7 +689,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">1</span>
+                      
+                    
+                    <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>
@@ -692,7 +706,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">1</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">3</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -923,6 +941,37 @@
   
 
   
+  
+
+  
+  
+
+  
+    
+      <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      },
+      TeX: {equationNumbers: { autoNumber: "AMS" }}
+    });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+    
+  
+
 
   
   
