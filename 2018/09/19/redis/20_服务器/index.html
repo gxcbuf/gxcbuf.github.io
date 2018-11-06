@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="1. 服务器定义Redis服务段结构是其最核心的功能结构，负责维护与客户端键的网络连接，维护数据库状态，执行客户端的命令请求，统计一些运行数据等等。 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码阅读(二十) 服务器">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/09/19/redis/20_服务器/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="1. 服务器定义Redis服务段结构是其最核心的功能结构，负责维护与客户端键的网络连接，维护数据库状态，执行客户端的命令请求，统计一些运行数据等等。 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-09-19T03:14:13.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis源码阅读(二十) 服务器">
+<meta name="twitter:description" content="1. 服务器定义Redis服务段结构是其最核心的功能结构，负责维护与客户端键的网络连接，维护数据库状态，执行客户端的命令请求，统计一些运行数据等等。 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/09/19/redis/20_服务器/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis源码阅读(二十) 服务器 | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/09/19/redis/20_服务器/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis源码阅读(二十) 服务器
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-09-19 11:14:12 / 修改时间：11:14:13" itemprop="dateCreated datePublished" datetime="2018-09-19T11:14:12+08:00">2018-09-19</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/源码阅读/" itemprop="url" rel="index"><span itemprop="name">源码阅读</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="1-服务器定义"><a href="#1-服务器定义" class="headerlink" title="1. 服务器定义"></a>1. 服务器定义</h3><p>Redis服务段结构是其最核心的功能结构，负责维护与客户端键的网络连接，维护数据库状态，执行客户端的命令请求，统计一些运行数据等等。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br><span class="line">324</span><br><span class="line">325</span><br><span class="line">326</span><br><span class="line">327</span><br><span class="line">328</span><br><span class="line">329</span><br><span class="line">330</span><br><span class="line">331</span><br><span class="line">332</span><br><span class="line">333</span><br><span class="line">334</span><br><span class="line">335</span><br><span class="line">336</span><br><span class="line">337</span><br><span class="line">338</span><br><span class="line">339</span><br><span class="line">340</span><br><span class="line">341</span><br><span class="line">342</span><br><span class="line">343</span><br><span class="line">344</span><br><span class="line">345</span><br><span class="line">346</span><br><span class="line">347</span><br><span class="line">348</span><br><span class="line">349</span><br><span class="line">350</span><br><span class="line">351</span><br><span class="line">352</span><br><span class="line">353</span><br><span class="line">354</span><br><span class="line">355</span><br><span class="line">356</span><br><span class="line">357</span><br><span class="line">358</span><br><span class="line">359</span><br><span class="line">360</span><br><span class="line">361</span><br><span class="line">362</span><br><span class="line">363</span><br><span class="line">364</span><br><span class="line">365</span><br><span class="line">366</span><br><span class="line">367</span><br><span class="line">368</span><br><span class="line">369</span><br><span class="line">370</span><br><span class="line">371</span><br><span class="line">372</span><br><span class="line">373</span><br><span class="line">374</span><br><span class="line">375</span><br><span class="line">376</span><br><span class="line">377</span><br><span class="line">378</span><br><span class="line">379</span><br><span class="line">380</span><br><span class="line">381</span><br><span class="line">382</span><br><span class="line">383</span><br><span class="line">384</span><br><span class="line">385</span><br><span class="line">386</span><br><span class="line">387</span><br><span class="line">388</span><br><span class="line">389</span><br><span class="line">390</span><br><span class="line">391</span><br><span class="line">392</span><br><span class="line">393</span><br><span class="line">394</span><br><span class="line">395</span><br><span class="line">396</span><br><span class="line">397</span><br><span class="line">398</span><br><span class="line">399</span><br><span class="line">400</span><br><span class="line">401</span><br><span class="line">402</span><br><span class="line">403</span><br><span class="line">404</span><br><span class="line">405</span><br><span class="line">406</span><br><span class="line">407</span><br><span class="line">408</span><br><span class="line">409</span><br><span class="line">410</span><br><span class="line">411</span><br><span class="line">412</span><br><span class="line">413</span><br><span class="line">414</span><br><span class="line">415</span><br><span class="line">416</span><br><span class="line">417</span><br><span class="line">418</span><br><span class="line">419</span><br><span class="line">420</span><br><span class="line">421</span><br><span class="line">422</span><br><span class="line">423</span><br><span class="line">424</span><br><span class="line">425</span><br><span class="line">426</span><br><span class="line">427</span><br><span class="line">428</span><br><span class="line">429</span><br><span class="line">430</span><br><span class="line">431</span><br><span class="line">432</span><br><span class="line">433</span><br><span class="line">434</span><br><span class="line">435</span><br><span class="line">436</span><br><span class="line">437</span><br><span class="line">438</span><br><span class="line">439</span><br><span class="line">440</span><br><span class="line">441</span><br><span class="line">442</span><br><span class="line">443</span><br><span class="line">444</span><br><span class="line">445</span><br><span class="line">446</span><br><span class="line">447</span><br><span class="line">448</span><br><span class="line">449</span><br><span class="line">450</span><br><span class="line">451</span><br><span class="line">452</span><br><span class="line">453</span><br><span class="line">454</span><br><span class="line">455</span><br><span class="line">456</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></span><br><span class="line">    <span class="comment">/* General */</span></span><br><span class="line">    <span class="comment">// 程序运行主进程pid</span></span><br><span class="line">    <span class="keyword">pid_t</span> pid;                  <span class="comment">/* Main process pid. */</span></span><br><span class="line">    <span class="comment">// 配置文件绝对路径</span></span><br><span class="line">    <span class="keyword">char</span> *configfile;           <span class="comment">/* Absolute config file path, or NULL */</span></span><br><span class="line">    <span class="comment">// 可执行文件绝对路径</span></span><br><span class="line">    <span class="keyword">char</span> *executable;           <span class="comment">/* Absolute executable file path. */</span></span><br><span class="line">    <span class="comment">// 执行executable时的命令行参数</span></span><br><span class="line">    <span class="keyword">char</span> **exec_argv;           <span class="comment">/* Executable argv vector (copy). */</span></span><br><span class="line">    <span class="comment">// serverCron()调用频率</span></span><br><span class="line">    <span class="keyword">int</span> hz;                     <span class="comment">/* serverCron() calls frequency in hertz */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// RedisDB对象，长度16，每个都存储了Redis数据库对象</span></span><br><span class="line">    redisDb *db;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//  命令表</span></span><br><span class="line">    dict *commands;             <span class="comment">/* Command table */</span></span><br><span class="line">    <span class="comment">// rename之前的命令表</span></span><br><span class="line">    dict *orig_commands;        <span class="comment">/* Command table before command renaming. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 事件循环</span></span><br><span class="line">    aeEventLoop *el;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 服务器LRU时钟</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> lruclock;      <span class="comment">/* Clock for LRU eviction */</span></span><br><span class="line">    <span class="comment">// 立即关闭服务器</span></span><br><span class="line">    <span class="keyword">int</span> shutdown_asap;          <span class="comment">/* SHUTDOWN needed ASAP */</span></span><br><span class="line">    <span class="comment">// 在执行serverCron()期间进行rehash</span></span><br><span class="line">    <span class="keyword">int</span> activerehashing;        <span class="comment">/* Incremental rehash in serverCron() */</span></span><br><span class="line">    <span class="comment">// 主动进行碎片整理</span></span><br><span class="line">    <span class="keyword">int</span> active_defrag_running;  <span class="comment">/* Active defragmentation running (holds current scan aggressiveness) */</span></span><br><span class="line">    <span class="comment">// 是否设置了密码</span></span><br><span class="line">    <span class="keyword">char</span> *requirepass;          <span class="comment">/* Pass for AUTH command, or NULL */</span></span><br><span class="line">    <span class="comment">// PID文件路径</span></span><br><span class="line">    <span class="keyword">char</span> *pidfile;              <span class="comment">/* PID file path */</span></span><br><span class="line">    <span class="comment">// 架构类型，32位或64位</span></span><br><span class="line">    <span class="keyword">int</span> arch_bits;              <span class="comment">/* 32 or 64 depending on sizeof(long) */</span></span><br><span class="line">    <span class="comment">// serverCron()运行次数计数</span></span><br><span class="line">    <span class="keyword">int</span> cronloops;              <span class="comment">/* Number of times the cron function run */</span></span><br><span class="line">    <span class="comment">// 服务器运行ID，每次重启都会分配新的id</span></span><br><span class="line">    <span class="keyword">char</span> runid[CONFIG_RUN_ID_SIZE+<span class="number">1</span>];  <span class="comment">/* ID always different at every exec. */</span></span><br><span class="line">    <span class="comment">// 服务器是否运行在Sentinel模式</span></span><br><span class="line">    <span class="keyword">int</span> sentinel_mode;          <span class="comment">/* True if this instance is a Sentinel. */</span></span><br><span class="line">    <span class="comment">// 服务器初始化后使用内存的大小</span></span><br><span class="line">    <span class="keyword">size_t</span> initial_memory_usage; <span class="comment">/* Bytes used after initialization. */</span></span><br><span class="line">    <span class="comment">// 非标准输出也会记录Redis的logo</span></span><br><span class="line">    <span class="keyword">int</span> always_show_logo;       <span class="comment">/* Show logo even for non-stdout logging. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Modules */</span></span><br><span class="line">    <span class="comment">// 模块暴露的API</span></span><br><span class="line">    dict *moduleapi;            <span class="comment">/* Exported APIs dictionary for modules. */</span></span><br><span class="line">    <span class="comment">// 服务器启动时需要加载的模块</span></span><br><span class="line">    <span class="built_in">list</span> *loadmodule_queue;     <span class="comment">/* List of modules to load at startup. */</span></span><br><span class="line">    <span class="comment">// 这个pipe用来唤醒事件循环中的需要module命令处理的阻塞客户端</span></span><br><span class="line">    <span class="keyword">int</span> module_blocked_pipe[<span class="number">2</span>]; <span class="comment">/* Pipe used to awake the event loop if a</span></span><br><span class="line"><span class="comment">                                   client blocked on a module command needs</span></span><br><span class="line"><span class="comment">                                   to be processed. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Networking */</span></span><br><span class="line">    <span class="comment">// 监听端口号</span></span><br><span class="line">    <span class="keyword">int</span> port;                   <span class="comment">/* TCP listening port */</span></span><br><span class="line">    <span class="comment">// listen()函数的backlog参数</span></span><br><span class="line">    <span class="keyword">int</span> tcp_backlog;            <span class="comment">/* TCP listen() backlog */</span></span><br><span class="line">    <span class="comment">// 绑定的地址</span></span><br><span class="line">    <span class="keyword">char</span> *bindaddr[CONFIG_BINDADDR_MAX]; <span class="comment">/* Addresses we should bind to */</span></span><br><span class="line">    <span class="comment">// 绑定地址的数量</span></span><br><span class="line">    <span class="keyword">int</span> bindaddr_count;         <span class="comment">/* Number of addresses in server.bindaddr[] */</span></span><br><span class="line">    <span class="comment">// UNIX套接字</span></span><br><span class="line">    <span class="comment">// socket路径</span></span><br><span class="line">    <span class="keyword">char</span> *unixsocket;           <span class="comment">/* UNIX socket path */</span></span><br><span class="line">    <span class="comment">// socket模式</span></span><br><span class="line">    <span class="keyword">mode_t</span> unixsocketperm;      <span class="comment">/* UNIX socket permission */</span></span><br><span class="line">    <span class="comment">// TCPsocket的文件描述符</span></span><br><span class="line">    <span class="keyword">int</span> ipfd[CONFIG_BINDADDR_MAX]; <span class="comment">/* TCP socket file descriptors */</span></span><br><span class="line">    <span class="comment">// TCP文件描述符数量</span></span><br><span class="line">    <span class="keyword">int</span> ipfd_count;             <span class="comment">/* Used slots in ipfd[] */</span></span><br><span class="line">    <span class="comment">// UNIX socket文件描述符数量</span></span><br><span class="line">    <span class="keyword">int</span> sofd;                   <span class="comment">/* Unix socket file descriptor */</span></span><br><span class="line">    <span class="comment">// 集群文件描述符</span></span><br><span class="line">    <span class="keyword">int</span> cfd[CONFIG_BINDADDR_MAX];<span class="comment">/* Cluster bus listening socket */</span></span><br><span class="line">    <span class="comment">// 集群文件描述符数量</span></span><br><span class="line">    <span class="keyword">int</span> cfd_count;              <span class="comment">/* Used slots in cfd[] */</span></span><br><span class="line">    <span class="comment">// 服务器客户端链表，存储所有的客户端</span></span><br><span class="line">    <span class="built_in">list</span> *clients;              <span class="comment">/* List of active clients */</span></span><br><span class="line">    <span class="comment">// 即将关闭的客户端链表</span></span><br><span class="line">    <span class="built_in">list</span> *clients_to_close;     <span class="comment">/* Clients to close asynchronously */</span></span><br><span class="line">    <span class="comment">// 准备写操作或安装写处理程序的客户端链表</span></span><br><span class="line">    <span class="built_in">list</span> *clients_pending_write; <span class="comment">/* There is to write or install handler. */</span></span><br><span class="line">    <span class="comment">// 从节点链表，监控客户端链表</span></span><br><span class="line">    <span class="built_in">list</span> *slaves, *monitors;    <span class="comment">/* List of slaves and MONITORs */</span></span><br><span class="line">    <span class="comment">// 当前客户端，仅用于崩溃报告</span></span><br><span class="line">    client *current_client; <span class="comment">/* Current client, only used on crash report */</span></span><br><span class="line">    <span class="comment">// 客户端是否处于暂停</span></span><br><span class="line">    <span class="keyword">int</span> clients_paused;         <span class="comment">/* True if clients are currently paused */</span></span><br><span class="line">    <span class="comment">// 取消暂停状态时间</span></span><br><span class="line">    <span class="keyword">mstime_t</span> clients_pause_end_time; <span class="comment">/* Time when we undo clients_paused */</span></span><br><span class="line">    <span class="comment">// 网络错误缓冲区</span></span><br><span class="line">    <span class="keyword">char</span> neterr[ANET_ERR_LEN];   <span class="comment">/* Error buffer for anet.c */</span></span><br><span class="line">    <span class="comment">// 迁移缓存套接字的字典，键：host:ip，值：TCP套接字结构</span></span><br><span class="line">    dict *migrate_cached_sockets;<span class="comment">/* MIGRATE cached sockets */</span></span><br><span class="line">    <span class="comment">// 下一个客户端ID</span></span><br><span class="line">    <span class="keyword">uint64_t</span> next_client_id;    <span class="comment">/* Next client unique ID. Incremental. */</span></span><br><span class="line">    <span class="comment">// 保护模式，不接受外部链接, 仅本地连接</span></span><br><span class="line">    <span class="keyword">int</span> protected_mode;         <span class="comment">/* Don't accept external connections. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* RDB / AOF loading information */</span></span><br><span class="line">    <span class="comment">// 服务器处于加载状态，从RDB/AOF文件恢复中</span></span><br><span class="line">    <span class="keyword">int</span> loading;                <span class="comment">/* We are loading data from disk if true */</span></span><br><span class="line">    <span class="comment">// 要加载的总字节数</span></span><br><span class="line">    <span class="keyword">off_t</span> loading_total_bytes;</span><br><span class="line">    <span class="comment">// 已经加载的字节数</span></span><br><span class="line">    <span class="keyword">off_t</span> loading_loaded_bytes;</span><br><span class="line">    <span class="comment">// 加载开始时间</span></span><br><span class="line">    <span class="keyword">time_t</span> loading_start_time;</span><br><span class="line">    <span class="comment">// 加载过程中，读写的最大块字节数</span></span><br><span class="line">    <span class="keyword">off_t</span> loading_process_events_interval_bytes;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Fast pointers to often looked up command */</span></span><br><span class="line">    <span class="comment">// Redis命令</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">redisCommand</span> *<span class="title">delCommand</span>, *<span class="title">multiCommand</span>, *<span class="title">lpushCommand</span>, *<span class="title">lpopCommand</span>,</span></span><br><span class="line"><span class="class">                        *<span class="title">rpopCommand</span>, *<span class="title">sremCommand</span>, *<span class="title">execCommand</span>, *<span class="title">expireCommand</span>,</span></span><br><span class="line"><span class="class">                        *<span class="title">pexpireCommand</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Fields used only for stats */</span></span><br><span class="line">    <span class="comment">// 服务器开始时间</span></span><br><span class="line">    <span class="keyword">time_t</span> stat_starttime;          <span class="comment">/* Server start time */</span></span><br><span class="line">    <span class="comment">// 执行命令的数量</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_numcommands;     <span class="comment">/* Number of processed commands */</span></span><br><span class="line">    <span class="comment">// 接收连接的数量</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_numconnections;  <span class="comment">/* Number of connections received */</span></span><br><span class="line">    <span class="comment">// 过期键的数量</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_expiredkeys;     <span class="comment">/* Number of expired keys */</span></span><br><span class="line">    <span class="comment">// 键可能过期的百分比</span></span><br><span class="line">    <span class="keyword">double</span> stat_expired_stale_perc; <span class="comment">/* Percentage of keys probably expired */</span></span><br><span class="line">    <span class="comment">// 删除过期键时，如果过期键太多但我们不能一直进行删除，所以设定了时间</span></span><br><span class="line">    <span class="comment">// 超过该时间，则退出循环等待下一次删除，该属性记录超过该时间的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_expired_time_cap_reached_count; <span class="comment">/* Early expire cylce stops.*/</span></span><br><span class="line">    <span class="comment">// LFU算法中，驱逐key的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_evictedkeys;     <span class="comment">/* Number of evicted keys (maxmemory) */</span></span><br><span class="line">    <span class="comment">// 成功命中key的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_keyspace_hits;   <span class="comment">/* Number of successful lookups of keys */</span></span><br><span class="line">    <span class="comment">// 没有命中key的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_keyspace_misses; <span class="comment">/* Number of failed lookups of keys */</span></span><br><span class="line">    <span class="comment">// 整理内存碎片命中次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_active_defrag_hits;      <span class="comment">/* number of allocations moved */</span></span><br><span class="line">    <span class="comment">// 整理内存碎片没有命中次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_active_defrag_misses;    <span class="comment">/* number of allocations scanned but not moved */</span></span><br><span class="line">    <span class="comment">// 整理内存碎片key被重新分配的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_active_defrag_key_hits;  <span class="comment">/* number of keys with moved allocations */</span></span><br><span class="line">    <span class="comment">// 整理内存碎片扫描到key但没有移动的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_active_defrag_key_misses;<span class="comment">/* number of keys scanned and not moved */</span></span><br><span class="line">    <span class="comment">// 使用的内存峰值</span></span><br><span class="line">    <span class="keyword">size_t</span> stat_peak_memory;        <span class="comment">/* Max used memory record */</span></span><br><span class="line">    <span class="comment">// 执行fork()的时间</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_fork_time;       <span class="comment">/* Time needed to perform latest fork() */</span></span><br><span class="line">    <span class="comment">// 执行fork()的速率</span></span><br><span class="line">    <span class="keyword">double</span> stat_fork_rate;          <span class="comment">/* Fork rate in GB/sec. */</span></span><br><span class="line">    <span class="comment">// 因为最大客户端数，拒绝客户端连接的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_rejected_conn;   <span class="comment">/* Clients rejected because of maxclients */</span></span><br><span class="line">    <span class="comment">// 执行从节点全量同步的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_sync_full;       <span class="comment">/* Number of full resyncs with slaves. */</span></span><br><span class="line">    <span class="comment">// 成功接受PSYNC的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_sync_partial_ok; <span class="comment">/* Number of accepted PSYNC requests. */</span></span><br><span class="line">    <span class="comment">// 错误接受PSYNC的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_sync_partial_err;<span class="comment">/* Number of unaccepted PSYNC requests. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 慢查询命令链表</span></span><br><span class="line">    <span class="built_in">list</span> *slowlog;                  <span class="comment">/* SLOWLOG list of commands */</span></span><br><span class="line">    <span class="comment">// 当前慢查询的日志ID</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> slowlog_entry_id;     <span class="comment">/* SLOWLOG current entry ID */</span></span><br><span class="line">    <span class="comment">// 慢查询的评定时间</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> slowlog_log_slower_than; <span class="comment">/* SLOWLOG time limit (to get logged) */</span></span><br><span class="line">    <span class="comment">// 慢查询的最大数量</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> slowlog_max_len;     <span class="comment">/* SLOWLOG max number of items logged */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// serverCron() 中采用RSS, 常驻内存大小</span></span><br><span class="line">    <span class="keyword">size_t</span> resident_set_size;       <span class="comment">/* RSS sampled in serverCron(). */</span></span><br><span class="line">    <span class="comment">// 读取网络字节数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_net_input_bytes; <span class="comment">/* Bytes read from network. */</span></span><br><span class="line">    <span class="comment">// 输出网络字节数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> stat_net_output_bytes; <span class="comment">/* Bytes written to network. */</span></span><br><span class="line">    <span class="comment">// RDB保存时写时复制的字节数</span></span><br><span class="line">    <span class="keyword">size_t</span> stat_rdb_cow_bytes;      <span class="comment">/* Copy on write bytes during RDB saving. */</span></span><br><span class="line">    <span class="comment">// AOF执行时写时复制的字节数</span></span><br><span class="line">    <span class="keyword">size_t</span> stat_aof_cow_bytes;      <span class="comment">/* Copy on write bytes during AOF rewrite. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* The following two are used to track instantaneous metrics, like</span></span><br><span class="line"><span class="comment">     * number of operations per second, network traffic. */</span></span><br><span class="line">    <span class="comment">// 用来追踪瞬时数据，例如每秒操作数，网络流量等</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">        <span class="comment">// 上次采样的时间戳</span></span><br><span class="line">        <span class="keyword">long</span> <span class="keyword">long</span> last_sample_time; <span class="comment">/* Timestamp of last sample in ms */</span></span><br><span class="line">        <span class="comment">// 上次采用的数量</span></span><br><span class="line">        <span class="keyword">long</span> <span class="keyword">long</span> last_sample_count;<span class="comment">/* Count in last sample */</span></span><br><span class="line">        <span class="comment">// 采用数据</span></span><br><span class="line">        <span class="keyword">long</span> <span class="keyword">long</span> samples[STATS_METRIC_SAMPLES];</span><br><span class="line">        <span class="comment">// 下标</span></span><br><span class="line">        <span class="keyword">int</span> idx;</span><br><span class="line">    &#125; inst_metric[STATS_METRIC_COUNT];</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Configuration */</span></span><br><span class="line">    <span class="comment">// 日志级别</span></span><br><span class="line">    <span class="keyword">int</span> verbosity;                  <span class="comment">/* Loglevel in redis.conf */</span></span><br><span class="line">    <span class="comment">// 客户端最大空闲时间，超过会超时</span></span><br><span class="line">    <span class="keyword">int</span> maxidletime;                <span class="comment">/* Client timeout in seconds */</span></span><br><span class="line">    <span class="comment">// 开启SO_KEEPALIVE选项</span></span><br><span class="line">    <span class="keyword">int</span> tcpkeepalive;               <span class="comment">/* Set SO_KEEPALIVE if non-zero. */</span></span><br><span class="line">    <span class="comment">// 开启过期</span></span><br><span class="line">    <span class="keyword">int</span> active_expire_enabled;      <span class="comment">/* Can be disabled for testing purposes. */</span></span><br><span class="line">    <span class="comment">// 开启内存整理</span></span><br><span class="line">    <span class="keyword">int</span> active_defrag_enabled;</span><br><span class="line">    <span class="comment">// 内存碎片整理的标准，小于这个值会忽略</span></span><br><span class="line">    <span class="keyword">size_t</span> active_defrag_ignore_bytes; <span class="comment">/* minimum amount of fragmentation waste to start active defrag */</span></span><br><span class="line">    <span class="comment">// 内存碎片的最小比例，开启内存整理</span></span><br><span class="line">    <span class="keyword">int</span> active_defrag_threshold_lower; <span class="comment">/* minimum percentage of fragmentation to start active defrag */</span></span><br><span class="line">    <span class="comment">// 碎片的最大比例</span></span><br><span class="line">    <span class="keyword">int</span> active_defrag_threshold_upper; <span class="comment">/* maximum percentage of fragmentation at which we use maximum effort */</span></span><br><span class="line">    <span class="comment">// 碎片整理的CPU占用最小比例</span></span><br><span class="line">    <span class="keyword">int</span> active_defrag_cycle_min;       <span class="comment">/* minimal effort for defrag in CPU percentage */</span></span><br><span class="line">    <span class="comment">// 碎片整理的CPU占用最大比例</span></span><br><span class="line">    <span class="keyword">int</span> active_defrag_cycle_max;       <span class="comment">/* maximal effort for defrag in CPU percentage */</span></span><br><span class="line">    <span class="comment">// 客户端查询缓冲区的最大长度</span></span><br><span class="line">    <span class="keyword">size_t</span> client_max_querybuf_len; <span class="comment">/* Limit for client query buffer length */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 服务器数据库的数量</span></span><br><span class="line">    <span class="keyword">int</span> dbnum;                      <span class="comment">/* Total number of configured DBs */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1表示有监督，0表示没有</span></span><br><span class="line">    <span class="keyword">int</span> supervised;                 <span class="comment">/* 1 if supervised, 0 otherwise. */</span></span><br><span class="line">    <span class="comment">// 监督模式</span></span><br><span class="line">    <span class="keyword">int</span> supervised_mode;            <span class="comment">/* See SUPERVISED_* */</span></span><br><span class="line">    <span class="comment">// 是否运行在守护模式</span></span><br><span class="line">    <span class="keyword">int</span> daemonize;                  <span class="comment">/* True if running as a daemon */</span></span><br><span class="line">    <span class="comment">// 不同类型的客户端输出缓冲区限制</span></span><br><span class="line">    clientBufferLimitsConfig client_obuf_limits[CLIENT_TYPE_OBUF_COUNT];</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* AOF persistence */</span></span><br><span class="line">    <span class="comment">// 服务器AOF状态</span></span><br><span class="line">    <span class="keyword">int</span> aof_state;                  <span class="comment">/* AOF_(ON|OFF|WAIT_REWRITE) */</span></span><br><span class="line">    <span class="comment">// 服务器AOF的fsync策略</span></span><br><span class="line">    <span class="keyword">int</span> aof_fsync;                  <span class="comment">/* Kind of fsync() policy */</span></span><br><span class="line">    <span class="comment">// 服务器AOF文件名</span></span><br><span class="line">    <span class="keyword">char</span> *aof_filename;             <span class="comment">/* Name of the AOF file */</span></span><br><span class="line">    <span class="comment">// 如果有aof执行，则不进行fsync</span></span><br><span class="line">    <span class="keyword">int</span> aof_no_fsync_on_rewrite;    <span class="comment">/* Don't fsync if a rewrite is in prog. */</span></span><br><span class="line">    <span class="comment">// AOF增长比率，默认100</span></span><br><span class="line">    <span class="keyword">int</span> aof_rewrite_perc;           <span class="comment">/* Rewrite AOF if % growth is &gt; M and... */</span></span><br><span class="line">    <span class="comment">// AOF最小字节数</span></span><br><span class="line">    <span class="keyword">off_t</span> aof_rewrite_min_size;     <span class="comment">/* the AOF file is at least N bytes. */</span></span><br><span class="line">    <span class="comment">// AOF初始字节数</span></span><br><span class="line">    <span class="keyword">off_t</span> aof_rewrite_base_size;    <span class="comment">/* AOF size on latest startup or rewrite. */</span></span><br><span class="line">    <span class="comment">// AOF当前字节数</span></span><br><span class="line">    <span class="keyword">off_t</span> aof_current_size;         <span class="comment">/* AOF current size. */</span></span><br><span class="line">    <span class="comment">// AOF重写提上日程，BGSAVE完成立即执行</span></span><br><span class="line">    <span class="keyword">int</span> aof_rewrite_scheduled;      <span class="comment">/* Rewrite once BGSAVE terminates. */</span></span><br><span class="line">    <span class="comment">// AOF子进程pid</span></span><br><span class="line">    <span class="keyword">pid_t</span> aof_child_pid;            <span class="comment">/* PID if rewriting process */</span></span><br><span class="line">    <span class="comment">// AOF缓冲区链表</span></span><br><span class="line">    <span class="built_in">list</span> *aof_rewrite_buf_blocks;   <span class="comment">/* Hold changes during an AOF rewrite. */</span></span><br><span class="line">    <span class="comment">// AOF缓冲区</span></span><br><span class="line">    sds aof_buf;      <span class="comment">/* AOF buffer, written before entering the event loop */</span></span><br><span class="line">    <span class="comment">// AOF文件描述符</span></span><br><span class="line">    <span class="keyword">int</span> aof_fd;       <span class="comment">/* File descriptor of currently selected AOF file */</span></span><br><span class="line">    <span class="comment">// AOF选中的db</span></span><br><span class="line">    <span class="keyword">int</span> aof_selected_db; <span class="comment">/* Currently selected DB in AOF */</span></span><br><span class="line">    <span class="comment">// 延迟执行flush操作的开始时间</span></span><br><span class="line">    <span class="keyword">time_t</span> aof_flush_postponed_start; <span class="comment">/* UNIX time of postponed AOF flush */</span></span><br><span class="line">    <span class="comment">// 最后一次fsync的直接</span></span><br><span class="line">    <span class="keyword">time_t</span> aof_last_fsync;            <span class="comment">/* UNIX time of last fsync() */</span></span><br><span class="line">    <span class="comment">// AOF执行最后时间</span></span><br><span class="line">    <span class="keyword">time_t</span> aof_rewrite_time_last;   <span class="comment">/* Time used by last AOF rewrite run. */</span></span><br><span class="line">    <span class="comment">// AOF执行开始时间</span></span><br><span class="line">    <span class="keyword">time_t</span> aof_rewrite_time_start;  <span class="comment">/* Current AOF rewrite start time. */</span></span><br><span class="line">    <span class="comment">// AOF执行的状态</span></span><br><span class="line">    <span class="keyword">int</span> aof_lastbgrewrite_status;   <span class="comment">/* C_OK or C_ERR */</span></span><br><span class="line">    <span class="comment">// 延迟fsync的次数</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> aof_delayed_fsync;  <span class="comment">/* delayed AOF fsync() counter */</span></span><br><span class="line">    <span class="comment">// 重写时是否开启增量式同步，每次写入AOF_AUTOSYNC_BYTES个字节，就执行一次同步</span></span><br><span class="line">    <span class="keyword">int</span> aof_rewrite_incremental_fsync;<span class="comment">/* fsync incrementally while rewriting? */</span></span><br><span class="line">    <span class="comment">// 上一次AOF操作状态</span></span><br><span class="line">    <span class="keyword">int</span> aof_last_write_status;      <span class="comment">/* C_OK or C_ERR */</span></span><br><span class="line">    <span class="comment">// 删一次AOF操作错误</span></span><br><span class="line">    <span class="keyword">int</span> aof_last_write_errno;       <span class="comment">/* Valid if aof_last_write_status is ERR */</span></span><br><span class="line">    <span class="keyword">int</span> aof_load_truncated;         <span class="comment">/* Don't stop on unexpected AOF EOF. */</span></span><br><span class="line">    <span class="keyword">int</span> aof_use_rdb_preamble;       <span class="comment">/* Use RDB preamble on AOF rewrites. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* AOF pipes used to communicate between parent and child during rewrite. */</span></span><br><span class="line">    <span class="comment">// 进程通信文件描述描述符，管道</span></span><br><span class="line">    <span class="keyword">int</span> aof_pipe_write_data_to_child;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_read_data_from_parent;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_write_ack_to_parent;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_read_ack_from_child;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_write_ack_to_child;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_read_ack_from_parent;</span><br><span class="line">    <span class="keyword">int</span> aof_stop_sending_diff;     <span class="comment">/* If true stop sending accumulated diffs</span></span><br><span class="line"><span class="comment">                                      to child process. */</span></span><br><span class="line">    <span class="comment">// 保存子进程AOF时累积数据的sds</span></span><br><span class="line">    sds aof_child_diff;             <span class="comment">/* AOF diff accumulator child side. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* RDB persistence */</span></span><br><span class="line">    <span class="comment">// 记录数据库被修改的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> dirty;                <span class="comment">/* Changes to DB from the last save */</span></span><br><span class="line">    <span class="comment">// BGSAVE执行前，需要备份dirty</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> dirty_before_bgsave;  <span class="comment">/* Used to restore dirty on failed BGSAVE */</span></span><br><span class="line">    <span class="comment">// 执行BGSAVE的子进程pid</span></span><br><span class="line">    <span class="keyword">pid_t</span> rdb_child_pid;            <span class="comment">/* PID of RDB saving child */</span></span><br><span class="line">    <span class="comment">// RDB执行的参数</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">saveparam</span> *<span class="title">saveparams</span>;</span>   <span class="comment">/* Save points array for RDB */</span></span><br><span class="line">    <span class="comment">// save参数的长度</span></span><br><span class="line">    <span class="keyword">int</span> saveparamslen;              <span class="comment">/* Number of saving points */</span></span><br><span class="line">    <span class="comment">// rdb文件名称</span></span><br><span class="line">    <span class="keyword">char</span> *rdb_filename;             <span class="comment">/* Name of RDB file */</span></span><br><span class="line">    <span class="comment">// 是否采用LZF压缩算法压缩RDB文件</span></span><br><span class="line">    <span class="keyword">int</span> rdb_compression;            <span class="comment">/* Use compression in RDB? */</span></span><br><span class="line">    <span class="comment">// RDB是否使用校验和</span></span><br><span class="line">    <span class="keyword">int</span> rdb_checksum;               <span class="comment">/* Use RDB checksum? */</span></span><br><span class="line">    <span class="comment">// 上一次save成功的实际</span></span><br><span class="line">    <span class="keyword">time_t</span> lastsave;                <span class="comment">/* Unix time of last successful save */</span></span><br><span class="line">    <span class="comment">// 上一次尝试bgsave的实际</span></span><br><span class="line">    <span class="keyword">time_t</span> lastbgsave_try;          <span class="comment">/* Unix time of last attempted bgsave */</span></span><br><span class="line">    <span class="comment">// 上一次save执行的实际</span></span><br><span class="line">    <span class="keyword">time_t</span> rdb_save_time_last;      <span class="comment">/* Time used by last RDB save run. */</span></span><br><span class="line">    <span class="comment">// RDB保存开始时间</span></span><br><span class="line">    <span class="keyword">time_t</span> rdb_save_time_start;     <span class="comment">/* Current RDB save start time. */</span></span><br><span class="line">    <span class="comment">// BGSAVE计划</span></span><br><span class="line">    <span class="keyword">int</span> rdb_bgsave_scheduled;       <span class="comment">/* BGSAVE when possible if true. */</span></span><br><span class="line">    <span class="comment">// rdb执行的类型，写入磁盘还是从节点socket</span></span><br><span class="line">    <span class="keyword">int</span> rdb_child_type;             <span class="comment">/* Type of save by active child. */</span></span><br><span class="line">    <span class="comment">// 上一次BGSAVE执行的状态</span></span><br><span class="line">    <span class="keyword">int</span> lastbgsave_status;          <span class="comment">/* C_OK or C_ERR */</span></span><br><span class="line">    <span class="comment">// BGSAVE出错则停止写</span></span><br><span class="line">    <span class="keyword">int</span> stop_writes_on_bgsave_err;  <span class="comment">/* Don't allow writes if can't BGSAVE */</span></span><br><span class="line">    <span class="comment">// rdb管道写端</span></span><br><span class="line">    <span class="keyword">int</span> rdb_pipe_write_result_to_parent; <span class="comment">/* RDB pipes used to return the state */</span></span><br><span class="line">    <span class="comment">// rdb管道读端, 使用无盘同步</span></span><br><span class="line">    <span class="keyword">int</span> rdb_pipe_read_result_from_child; <span class="comment">/* of each slave in diskless SYNC. */</span></span><br><span class="line">    <span class="comment">/* Pipe and data structures for child -&gt; parent info sharing. */</span></span><br><span class="line">    <span class="keyword">int</span> child_info_pipe[<span class="number">2</span>];         <span class="comment">/* Pipe used to write the child_info_data. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 子进程信息</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">        <span class="comment">// AOF 或 RDB</span></span><br><span class="line">        <span class="keyword">int</span> process_type;           <span class="comment">/* AOF or RDB child? */</span></span><br><span class="line">        <span class="comment">// 写时复制的大小</span></span><br><span class="line">        <span class="keyword">size_t</span> cow_size;            <span class="comment">/* Copy on write size. */</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span> magic;   <span class="comment">/* Magic value to make sure data is valid. */</span></span><br><span class="line">    &#125; child_info_data;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Propagation of commands in AOF / replication */</span></span><br><span class="line">    <span class="comment">// 传递给AOF/replication的一些命令</span></span><br><span class="line">    redisOpArray also_propagate;    <span class="comment">/* Additional command to propagate. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Logging */</span></span><br><span class="line">    <span class="comment">// 日志文件路径</span></span><br><span class="line">    <span class="keyword">char</span> *logfile;                  <span class="comment">/* Path of log file */</span></span><br><span class="line">    <span class="comment">// 是否开启系统日志</span></span><br><span class="line">    <span class="keyword">int</span> syslog_enabled;             <span class="comment">/* Is syslog enabled? */</span></span><br><span class="line">    <span class="comment">// 系统日志标识</span></span><br><span class="line">    <span class="keyword">char</span> *syslog_ident;             <span class="comment">/* Syslog ident */</span></span><br><span class="line">    <span class="keyword">int</span> syslog_facility;            <span class="comment">/* Syslog facility */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Replication (slave) */</span></span><br><span class="line">    <span class="comment">// master结点的验证密码</span></span><br><span class="line">    <span class="keyword">char</span> *masterauth;               <span class="comment">/* AUTH with this password with master */</span></span><br><span class="line">    <span class="comment">// master结点的地址</span></span><br><span class="line">    <span class="keyword">char</span> *masterhost;               <span class="comment">/* Hostname of master */</span></span><br><span class="line">    <span class="comment">// master结点的端口号</span></span><br><span class="line">    <span class="keyword">int</span> masterport;                 <span class="comment">/* Port of master */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">/* Synchronous replication. */</span></span><br><span class="line">    <span class="comment">// 等待WAIT命令的客户端链表</span></span><br><span class="line">    <span class="built_in">list</span> *clients_waiting_acks;         <span class="comment">/* Clients waiting in WAIT command. */</span></span><br><span class="line">    <span class="comment">// 读取从节点ack</span></span><br><span class="line">    <span class="keyword">int</span> get_ack_from_slaves;            <span class="comment">/* If true we send REPLCONF GETACK. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Limits */</span></span><br><span class="line">    <span class="comment">// 同时最多连接的客户端数量</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> maxclients;            <span class="comment">/* Max number of simultaneous clients */</span></span><br><span class="line">    <span class="comment">// 服务器使用内存的最大值</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span> maxmemory;   <span class="comment">/* Max number of memory bytes to use */</span></span><br><span class="line">    <span class="comment">// 键占用内存回收策略</span></span><br><span class="line">    <span class="keyword">int</span> maxmemory_policy;           <span class="comment">/* Policy for key eviction */</span></span><br><span class="line">    <span class="comment">// 随机采样的个数</span></span><br><span class="line">    <span class="keyword">int</span> maxmemory_samples;          <span class="comment">/* Pricision of random sampling */</span></span><br><span class="line">    <span class="comment">// LFU 对数计数因子</span></span><br><span class="line">    <span class="keyword">int</span> lfu_log_factor;             <span class="comment">/* LFU logarithmic counter factor. */</span></span><br><span class="line">    <span class="comment">// LFU 反衰减因子</span></span><br><span class="line">    <span class="keyword">int</span> lfu_decay_time;             <span class="comment">/* LFU counter decay factor. */</span></span><br><span class="line">    <span class="comment">// 批量协议最大长度</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> proto_max_bulk_len;   <span class="comment">/* Protocol bulk length maximum size. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Blocked clients */</span></span><br><span class="line">    <span class="comment">// 阻塞的客户端数量</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> bpop_blocked_clients; <span class="comment">/* Number of clients blocked by lists */</span></span><br><span class="line">    <span class="comment">// 阻塞的客户端链表</span></span><br><span class="line">    <span class="built_in">list</span> *unblocked_clients; <span class="comment">/* list of clients to unblock before next loop */</span></span><br><span class="line">    <span class="comment">// BLPOP命令产生的阻塞键列表</span></span><br><span class="line">    <span class="built_in">list</span> *ready_keys;        <span class="comment">/* List of readyList structures for BLPOP &amp; co */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Sort parameters - qsort_r() is only available under BSD so we</span></span><br><span class="line"><span class="comment">     * have to take this state global, in order to pass it to sortCompare() */</span></span><br><span class="line">    <span class="comment">// 降序排序</span></span><br><span class="line">    <span class="keyword">int</span> sort_desc;</span><br><span class="line">    <span class="comment">// 根据字母排序</span></span><br><span class="line">    <span class="keyword">int</span> sort_alpha;</span><br><span class="line">    <span class="comment">// 根据模式排序</span></span><br><span class="line">    <span class="keyword">int</span> sort_bypattern;</span><br><span class="line">    <span class="comment">// 根据分数排序</span></span><br><span class="line">    <span class="keyword">int</span> sort_store;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Zip structure config, see redis.conf for more information  */</span></span><br><span class="line">    <span class="comment">// ziplist最大结点个数</span></span><br><span class="line">    <span class="keyword">size_t</span> hash_max_ziplist_entries;</span><br><span class="line">    <span class="comment">// ziplist结点最大内存</span></span><br><span class="line">    <span class="keyword">size_t</span> hash_max_ziplist_value;</span><br><span class="line">    <span class="comment">// set整数集合最大结点数</span></span><br><span class="line">    <span class="keyword">size_t</span> set_max_intset_entries;</span><br><span class="line">    <span class="comment">// zset压缩列表最大结点数</span></span><br><span class="line">    <span class="keyword">size_t</span> zset_max_ziplist_entries;</span><br><span class="line">    <span class="comment">// zset压缩列表结点最大内存</span></span><br><span class="line">    <span class="keyword">size_t</span> zset_max_ziplist_value;</span><br><span class="line">    <span class="keyword">size_t</span> hll_sparse_max_bytes;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* List parameters */</span></span><br><span class="line">    <span class="comment">// list压缩列表最大长度</span></span><br><span class="line">    <span class="keyword">int</span> list_max_ziplist_size;</span><br><span class="line">    <span class="comment">// list压缩列表压缩程度</span></span><br><span class="line">    <span class="keyword">int</span> list_compress_depth;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* time cache */</span></span><br><span class="line">    <span class="comment">// 循环采用世界</span></span><br><span class="line">    <span class="keyword">time_t</span> unixtime;    <span class="comment">/* Unix time sampled every cron cycle. */</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> mstime;   <span class="comment">/* Like 'unixtime' but with milliseconds resolution. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Pubsub */</span></span><br><span class="line">    <span class="comment">// 客户端订阅channel的字典</span></span><br><span class="line">    dict *pubsub_channels;  <span class="comment">/* Map channels to list of subscribed clients */</span></span><br><span class="line">    <span class="comment">// pubsub定义模式</span></span><br><span class="line">    <span class="built_in">list</span> *pubsub_patterns;  <span class="comment">/* A list of pubsub_patterns */</span></span><br><span class="line">    <span class="comment">// 通过Pub/Sub传递事件</span></span><br><span class="line">    <span class="keyword">int</span> notify_keyspace_events; <span class="comment">/* Events to propagate via Pub/Sub. This is an</span></span><br><span class="line"><span class="comment">                                   xor of NOTIFY_... flags. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Cluster */</span></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Scripting */</span></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h3 id="2-Redis命令"><a href="#2-Redis命令" class="headerlink" title="2. Redis命令"></a>2. Redis命令</h3><h4 id="2-1-命令表-commands"><a href="#2-1-命令表-commands" class="headerlink" title="2.1 命令表 commands"></a>2.1 命令表 commands</h4><p>命令表存储了Redis可执行的命令字典，并对每个命令设定了一些执行参数。orig_commands是重命名之后的命令表，通过重命名可以提升Redis的安全性，比如讲KEYS, FLUSHDB这类的命令重命名为别的，这样一般用户在就不知道其真实的命令。</p>
+<ul>
+<li>命令结构表示如下</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>命名的名称，用户执行命令通过查找命令表匹配该字段来寻找相应的命令</td>
+</tr>
+<tr>
+<td>function</td>
+<td>执行命令实现的方法</td>
+</tr>
+<tr>
+<td>arity</td>
+<td>命令参数的个数，-N表示大于等于N。命令本身也是一个参数</td>
+</tr>
+<tr>
+<td>sflags</td>
+<td>字符串形式标识符，用于设置命令的属性</td>
+</tr>
+<tr>
+<td>flags</td>
+<td>sflags标识符的二进制标识，由sflags计算</td>
+</tr>
+<tr>
+<td>get_keys_proc</td>
+<td>一个可选函数，用于获取命令参数，只有在first_key_index，last_key_index，key_step无法指定哪些是参数时才使用此选项</td>
+</tr>
+<tr>
+<td>first_key_index</td>
+<td>第一个参数是key</td>
+</tr>
+<tr>
+<td>last_key_index</td>
+<td>最后一个参数是key</td>
+</tr>
+<tr>
+<td>key_step</td>
+<td>key之间的步长，如MSET步长为2， MSET key value key2 value2 …</td>
+</tr>
+<tr>
+<td>microseconds</td>
+<td>服务器执行该命令耗费的时间</td>
+</tr>
+<tr>
+<td>calls</td>
+<td>服务器总共执行了多少次该命令</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>命令的属性sflag标识</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>标识</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>w</td>
+<td>写命令</td>
+</tr>
+<tr>
+<td>r</td>
+<td>读命令</td>
+</tr>
+<tr>
+<td>m</td>
+<td>该命令会占用大量内存，执行之前需要检查内存情况</td>
+</tr>
+<tr>
+<td>a</td>
+<td>管理命令，如SAVE，SHUTDOWN等</td>
+</tr>
+<tr>
+<td>p</td>
+<td>发布订阅模式的命令</td>
+</tr>
+<tr>
+<td>f</td>
+<td>强制复制命令，无视服务器脏计数</td>
+</tr>
+<tr>
+<td>s</td>
+<td>Lua脚本中不允许的命令</td>
+</tr>
+<tr>
+<td>R</td>
+<td>随机命令，相同情况下，结果可能不同</td>
+</tr>
+<tr>
+<td>S</td>
+<td>Lua脚本中使用标识则需要对结果进行排序</td>
+</tr>
+<tr>
+<td>l</td>
+<td>服务器载入情况下可以使用的命令</td>
+</tr>
+<tr>
+<td>t</td>
+<td>从节点服务器数据过期时允许执行的命令</td>
+</tr>
+<tr>
+<td>M</td>
+<td>在MONITOR模式下不会自动传播</td>
+</tr>
+<tr>
+<td>k</td>
+<td>执行一个显示的ASKING，使得在集群模式下，被标志为imporing的槽可以接受该命令</td>
+</tr>
+<tr>
+<td>F</td>
+<td>快速模式，O(1)或O(log(N))的复杂度</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2-2-命令请求执行过程"><a href="#2-2-命令请求执行过程" class="headerlink" title="2.2 命令请求执行过程"></a>2.2 命令请求执行过程</h4><p>客户端发送命令到服务端执行返回有一下几个步骤：</p>
+<ol>
+<li><p>客户端与服务端建立连接，按照一定格式封装命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># SET msg hello 命令转换后如下</span></span><br><span class="line">*3\r\n<span class="variable">$3</span>\r\nSET\r\n<span class="variable">$3</span>\r\nmsg\r\n<span class="variable">$5</span>\r\nhello\r\n</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>服务器接收到来自网络客户端的请求数据，按照协议格式解析命令</p>
+<ol>
+<li>读取套接字中的命令请求，存储到对应的客户端输入缓冲区中</li>
+<li>读取缓冲区中数据，解析命令，提取命令请求和参数</li>
+</ol>
+</li>
+<li><p>获得解析命令后查找服务器的命令表，找到对应的命令及其执行方法</p>
+<ol>
+<li>查找服务器命令表匹配redisCommand结构中的name字段</li>
+<li>查询到命令后获取其执行方法，属性等，将命令执行方法保存在客户端cmd字段中</li>
+</ol>
+</li>
+<li><p>服务器根据执行命令，并返回处理后数据</p>
+</li>
+<li><p>客户端接收到服务器处理回复</p>
+</li>
+</ol>
+<blockquote>
+<p>命令执行时会根据其sflag标志和服务器设置有不同的处理操作，具体情况可看源码</p>
+</blockquote>
+<h3 id="3-Redis周期性任务"><a href="#3-Redis周期性任务" class="headerlink" title="3. Redis周期性任务"></a>3. Redis周期性任务</h3><p>服务器为了维护自身资源，默认每100毫秒执行一次周期性任务serverCron()，主要负责删除过期键、服务器状态监控、更新统计信息、渐进式rehash、触发BGSAVE/AOF重写并处理子进程中断、从节点复制重连等等。</p>
+<h4 id="3-1-更新服务器时间缓存"><a href="#3-1-更新服务器时间缓存" class="headerlink" title="3.1 更新服务器时间缓存"></a>3.1 更新服务器时间缓存</h4><p>Redis服务器很多功能需要获取系统当前时间，该系统调用需要消耗一定的CPU时间，对某些时间精度要求不高的功能我们可以在serverCron()中获取系统时间后缓存下来，可以有效的减少系统调用次数，服务器状态中unixtime和mstime属性用于存储时间缓存。</p>
+<p>对于日志打印、更新服务器LRU时钟等任务可以使用服务器缓冲时间；对于过期键的检测、慢查询日志等需要高精度时间任务来说，需要重新系统调用获取时间来计算。</p>
+<h4 id="3-2-处理SIGTERM信号"><a href="#3-2-处理SIGTERM信号" class="headerlink" title="3.2 处理SIGTERM信号"></a>3.2 处理SIGTERM信号</h4><p>启动服务器时，Redis会设置SIGTERM信号处理函数，当服务器接收到SIGTERM信号时，会开启shutdown_asap标识。serverCron()函数中，每次都会检测该标识，如果设置该标识，服务器会安全关闭，并记录日志。</p>
+<h4 id="3-3-客户端资源管理clientsCron"><a href="#3-3-客户端资源管理clientsCron" class="headerlink" title="3.3 客户端资源管理clientsCron()"></a>3.3 客户端资源管理clientsCron()</h4><p>serverCron()函数每次执行都会调用clientsCron函数，因为函数每秒调用server.hz(默认10)，为了确保每个客户端至少执行一秒，所以迭代次数至少为numclients/server.hz，该函数执行以下检查：</p>
+<ul>
+<li>如果客户端与服务器连接超时，那么释放该客户端</li>
+<li>如果客户端输入缓冲区超过一定限制，则重新分配缓存区的内存空间，确保没有浪费</li>
+</ul>
+<h4 id="3-4-管理数据库资源databaseCron"><a href="#3-4-管理数据库资源databaseCron" class="headerlink" title="3.4 管理数据库资源databaseCron()"></a>3.4 管理数据库资源databaseCron()</h4><p>serverCron()函数每次执行会调用databaseCron()函数，该函数会对数据库进行检查，删除过期键，resize，rehash等操作。</p>
+<ul>
+<li>主节点则开启过期键自动删除功能，从节点直接删除过期键</li>
+<li>内存碎片整理</li>
+<li>如果服务器为进行AOF或RDB，则进行Rehash和Resize</li>
+</ul>
+<h4 id="3-5-持久化记录"><a href="#3-5-持久化记录" class="headerlink" title="3.5 持久化记录"></a>3.5 持久化记录</h4><p>如果服务器没有RDB或AOF持久正在进行，那么开启后台的AOF重写任务；如果有RDB或AOF，则等待子进程信号，如果接收到信号说明持久化已完成，否则表示未完成。</p>
+<blockquote>
+<p>即使AOF重写错误，也需要刷新AOF缓冲区</p>
+</blockquote>
+<h4 id="3-6-更新信息并记录日志"><a href="#3-6-更新信息并记录日志" class="headerlink" title="3.6 更新信息并记录日志"></a>3.6 更新信息并记录日志</h4><ul>
+<li>更新服务器每秒执行命令次数</li>
+<li>更新LRU时钟</li>
+<li>更新内存使用峰值</li>
+<li>记录非空数据库日志</li>
+<li>非哨兵模式服务器，记录客户端连接日志</li>
+</ul>
+<h4 id="3-7-其他一些任务"><a href="#3-7-其他一些任务" class="headerlink" title="3.7 其他一些任务"></a>3.7 其他一些任务</h4><ul>
+<li><p>异步关闭需要关闭的客户端</p>
+</li>
+<li><p>如果需要解除客户端暂停状态</p>
+</li>
+<li><p>周期性复制任务</p>
+</li>
+<li><p>集群模式下，集群周期性任务</p>
+</li>
+<li><p>哨兵模式下任务</p>
+</li>
+<li><p>清理sockets连接</p>
+</li>
+</ul>
+<h3 id="4-源码剖析"><a href="#4-源码剖析" class="headerlink" title="4. 源码剖析"></a>4. 源码剖析</h3><ul>
+<li>周期性任务</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 服务器周期任务, 每秒调用server.hz次</span></span><br><span class="line"><span class="comment"> * 需要执行一些异步任务：</span></span><br><span class="line"><span class="comment"> *   - 主动删除过期键集合(也可以在读操作时懒删除)</span></span><br><span class="line"><span class="comment"> *   - 软件监控，🐶看门狗🐶</span></span><br><span class="line"><span class="comment"> *   - 更新统计信息</span></span><br><span class="line"><span class="comment"> *   - 渐进式rehash</span></span><br><span class="line"><span class="comment"> *   - 触发BGSAVE/AOF重写, 处理子进程中断</span></span><br><span class="line"><span class="comment"> *   - 不同类型客户端的超时时间</span></span><br><span class="line"><span class="comment"> *   - 复制重连</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 这里调用会每秒执行server.hz次，所以为了简便，我们使用一个宏run_with_period </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">serverCron</span><span class="params">(struct aeEventLoop *eventLoop, <span class="keyword">long</span> <span class="keyword">long</span> id, <span class="keyword">void</span> *clientData)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> j;</span><br><span class="line">    UNUSED(eventLoop);</span><br><span class="line">    UNUSED(id);</span><br><span class="line">    UNUSED(clientData);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Software watchdog: deliver the SIGALRM that will reach the signal</span></span><br><span class="line"><span class="comment">     * handler if we don't return here fast enough. */</span></span><br><span class="line">    <span class="comment">// 定期发送一个 SIGALRM 信号</span></span><br><span class="line">    <span class="keyword">if</span> (server.watchdog_period) watchdogScheduleSignal(server.watchdog_period);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Update the time cache. */</span></span><br><span class="line">    <span class="comment">// 更新服务器时间缓存</span></span><br><span class="line">    updateCachedTime();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 更新统计数据</span></span><br><span class="line">    run_with_period(<span class="number">100</span>) &#123;</span><br><span class="line">        <span class="comment">// 命令执行次数</span></span><br><span class="line">        trackInstantaneousMetric(STATS_METRIC_COMMAND,server.stat_numcommands);</span><br><span class="line">        <span class="comment">// 网络读取字节数</span></span><br><span class="line">        trackInstantaneousMetric(STATS_METRIC_NET_INPUT,</span><br><span class="line">                server.stat_net_input_bytes);</span><br><span class="line">        <span class="comment">// 网络输出字节数</span></span><br><span class="line">        trackInstantaneousMetric(STATS_METRIC_NET_OUTPUT,</span><br><span class="line">                server.stat_net_output_bytes);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We have just LRU_BITS bits per object for LRU information.</span></span><br><span class="line"><span class="comment">     * So we use an (eventually wrapping) LRU clock.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * Note that even if the counter wraps it's not a big problem,</span></span><br><span class="line"><span class="comment">     * everything will still work but some object will appear younger</span></span><br><span class="line"><span class="comment">     * to Redis. However for this to happen a given object should never be</span></span><br><span class="line"><span class="comment">     * touched for all the time needed to the counter to wrap, which is</span></span><br><span class="line"><span class="comment">     * not likely.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * Note that you can change the resolution altering the</span></span><br><span class="line"><span class="comment">     * LRU_CLOCK_RESOLUTION define. */</span></span><br><span class="line">    <span class="comment">// 服务器LRU时钟</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> lruclock = getLRUClock();</span><br><span class="line">    atomicSet(server.lruclock,lruclock);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Record the max memory used since the server was started. */</span></span><br><span class="line">    <span class="comment">// 记录使用内存峰值</span></span><br><span class="line">    <span class="keyword">if</span> (zmalloc_used_memory() &gt; server.stat_peak_memory)</span><br><span class="line">        server.stat_peak_memory = zmalloc_used_memory();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Sample the RSS here since this is a relatively slow call. */</span></span><br><span class="line">    <span class="comment">// 记录常驻内存大小</span></span><br><span class="line">    server.resident_set_size = zmalloc_get_rss();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We received a SIGTERM, shutting down here in a safe way, as it is</span></span><br><span class="line"><span class="comment">     * not ok doing so inside the signal handler. */</span></span><br><span class="line">    <span class="comment">// 接收到SIGTERM信号，安全关闭服务器</span></span><br><span class="line">    <span class="keyword">if</span> (server.shutdown_asap) &#123;</span><br><span class="line">        <span class="keyword">if</span> (prepareForShutdown(SHUTDOWN_NOFLAGS) == C_OK) <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">        serverLog(LL_WARNING,<span class="string">"SIGTERM received but errors trying to shut down the server, check the logs for more information"</span>);</span><br><span class="line">        server.shutdown_asap = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Show some info about non-empty databases */</span></span><br><span class="line">    <span class="comment">// 记录非空数据库日志</span></span><br><span class="line">    run_with_period(<span class="number">5000</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; server.dbnum; j++) &#123;</span><br><span class="line">            <span class="keyword">long</span> <span class="keyword">long</span> size, used, vkeys;</span><br><span class="line"></span><br><span class="line">            size = dictSlots(server.db[j].dict);</span><br><span class="line">            used = dictSize(server.db[j].dict);</span><br><span class="line">            vkeys = dictSize(server.db[j].expires);</span><br><span class="line">            <span class="keyword">if</span> (used || vkeys) &#123;</span><br><span class="line">                serverLog(LL_VERBOSE,<span class="string">"DB %d: %lld keys (%lld volatile) in %lld slots HT."</span>,j,used,vkeys,size);</span><br><span class="line">                <span class="comment">/* dictPrintStats(server.dict); */</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Show information about connected clients */</span></span><br><span class="line">    <span class="comment">// 非哨兵模式服务器，记录客户端连接信息到日志中</span></span><br><span class="line">    <span class="keyword">if</span> (!server.sentinel_mode) &#123;</span><br><span class="line">        run_with_period(<span class="number">5000</span>) &#123;</span><br><span class="line">            serverLog(LL_VERBOSE,</span><br><span class="line">                <span class="string">"%lu clients connected (%lu slaves), %zu bytes in use"</span>,</span><br><span class="line">                listLength(server.clients)-listLength(server.slaves),</span><br><span class="line">                listLength(server.slaves),</span><br><span class="line">                zmalloc_used_memory());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We need to do a few operations on clients asynchronously. */</span></span><br><span class="line">    <span class="comment">// 客户端周期性任务</span></span><br><span class="line">    clientsCron();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Handle background operations on Redis databases. */</span></span><br><span class="line">    <span class="comment">// 数据库周期性任务</span></span><br><span class="line">    databasesCron();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Start a scheduled AOF rewrite if this was requested by the user while</span></span><br><span class="line"><span class="comment">     * a BGSAVE was in progress. */</span></span><br><span class="line">    <span class="comment">// 如果没有RDB或AOF执行，那么开启后台AOF重写操作</span></span><br><span class="line">    <span class="keyword">if</span> (server.rdb_child_pid == <span class="number">-1</span> &amp;&amp; server.aof_child_pid == <span class="number">-1</span> &amp;&amp;</span><br><span class="line">        server.aof_rewrite_scheduled)</span><br><span class="line">    &#123;</span><br><span class="line">        rewriteAppendOnlyFileBackground();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Check if a background saving or AOF rewrite in progress terminated. */</span></span><br><span class="line">    <span class="comment">// 如果正在进行RDB或AOF重写操作，那么等待子进程信号</span></span><br><span class="line">    <span class="keyword">if</span> (server.rdb_child_pid != <span class="number">-1</span> || server.aof_child_pid != <span class="number">-1</span> ||</span><br><span class="line">        ldbPendingChildren())</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">int</span> statloc;</span><br><span class="line">        <span class="keyword">pid_t</span> pid;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ((pid = wait3(&amp;statloc,WNOHANG,<span class="literal">NULL</span>)) != <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">int</span> exitcode = WEXITSTATUS(statloc);</span><br><span class="line">            <span class="keyword">int</span> bysignal = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (WIFSIGNALED(statloc)) bysignal = WTERMSIG(statloc);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (pid == <span class="number">-1</span>) &#123;</span><br><span class="line">                serverLog(LL_WARNING,<span class="string">"wait3() returned an error: %s. "</span></span><br><span class="line">                    <span class="string">"rdb_child_pid = %d, aof_child_pid = %d"</span>,</span><br><span class="line">                    strerror(errno),</span><br><span class="line">                    (<span class="keyword">int</span>) server.rdb_child_pid,</span><br><span class="line">                    (<span class="keyword">int</span>) server.aof_child_pid);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (pid == server.rdb_child_pid) &#123;</span><br><span class="line">                backgroundSaveDoneHandler(exitcode,bysignal);</span><br><span class="line">                <span class="keyword">if</span> (!bysignal &amp;&amp; exitcode == <span class="number">0</span>) receiveChildInfo();</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (pid == server.aof_child_pid) &#123;</span><br><span class="line">                backgroundRewriteDoneHandler(exitcode,bysignal);</span><br><span class="line">                <span class="keyword">if</span> (!bysignal &amp;&amp; exitcode == <span class="number">0</span>) receiveChildInfo();</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">if</span> (!ldbRemoveChild(pid)) &#123;</span><br><span class="line">                    serverLog(LL_WARNING,</span><br><span class="line">                        <span class="string">"Warning, detected child with unmatched pid: %ld"</span>,</span><br><span class="line">                        (<span class="keyword">long</span>)pid);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            updateDictResizePolicy();</span><br><span class="line">            closeChildInfoPipe();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 没有正在进行的RDB或AOF，那么检查是否需要执行</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/* If there is not a background saving/rewrite in progress check if</span></span><br><span class="line"><span class="comment">         * we have to save/rewrite now. */</span></span><br><span class="line">         <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; server.saveparamslen; j++) &#123;</span><br><span class="line">            struct saveparam *sp = server.saveparams+j;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Save if we reached the given amount of changes,</span></span><br><span class="line"><span class="comment">             * the given amount of seconds, and if the latest bgsave was</span></span><br><span class="line"><span class="comment">             * successful or if, in case of an error, at least</span></span><br><span class="line"><span class="comment">             * CONFIG_BGSAVE_RETRY_DELAY seconds already elapsed. */</span></span><br><span class="line">            <span class="keyword">if</span> (server.dirty &gt;= sp-&gt;changes &amp;&amp;</span><br><span class="line">                server.unixtime-server.lastsave &gt; sp-&gt;seconds &amp;&amp;</span><br><span class="line">                (server.unixtime-server.lastbgsave_try &gt;</span><br><span class="line">                 CONFIG_BGSAVE_RETRY_DELAY ||</span><br><span class="line">                 server.lastbgsave_status == C_OK))</span><br><span class="line">            &#123;</span><br><span class="line">                serverLog(LL_NOTICE,<span class="string">"%d changes in %d seconds. Saving..."</span>,</span><br><span class="line">                    sp-&gt;changes, (<span class="keyword">int</span>)sp-&gt;seconds);</span><br><span class="line">                rdbSaveInfo rsi, *rsiptr;</span><br><span class="line">                rsiptr = rdbPopulateSaveInfo(&amp;rsi);</span><br><span class="line">                rdbSaveBackground(server.rdb_filename,rsiptr);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">         &#125;</span><br><span class="line"></span><br><span class="line">         <span class="comment">/* Trigger an AOF rewrite if needed. */</span></span><br><span class="line">         <span class="comment">// 根据需要触发AOF</span></span><br><span class="line">         <span class="keyword">if</span> (server.aof_state == AOF_ON &amp;&amp;</span><br><span class="line">             server.rdb_child_pid == <span class="number">-1</span> &amp;&amp;</span><br><span class="line">             server.aof_child_pid == <span class="number">-1</span> &amp;&amp;</span><br><span class="line">             server.aof_rewrite_perc &amp;&amp;</span><br><span class="line">             server.aof_current_size &gt; server.aof_rewrite_min_size)</span><br><span class="line">         &#123;</span><br><span class="line">            <span class="keyword">long</span> <span class="keyword">long</span> base = server.aof_rewrite_base_size ?</span><br><span class="line">                            server.aof_rewrite_base_size : <span class="number">1</span>;</span><br><span class="line">            <span class="keyword">long</span> <span class="keyword">long</span> growth = (server.aof_current_size*<span class="number">100</span>/base) - <span class="number">100</span>;</span><br><span class="line">            <span class="keyword">if</span> (growth &gt;= server.aof_rewrite_perc) &#123;</span><br><span class="line">                serverLog(LL_NOTICE,<span class="string">"Starting automatic rewriting of AOF on %lld%% growth"</span>,growth);</span><br><span class="line">                rewriteAppendOnlyFileBackground();</span><br><span class="line">            &#125;</span><br><span class="line">         &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* AOF postponed flush: Try at every cron cycle if the slow fsync</span></span><br><span class="line"><span class="comment">     * completed. */</span></span><br><span class="line">    <span class="comment">// AOF缓冲区冲洗到磁盘中</span></span><br><span class="line">    <span class="keyword">if</span> (server.aof_flush_postponed_start) flushAppendOnlyFile(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* AOF write errors: in this case we have a buffer to flush as well and</span></span><br><span class="line"><span class="comment">     * clear the AOF error in case of success to make the DB writable again,</span></span><br><span class="line"><span class="comment">     * however to try every second is enough in case of 'hz' is set to</span></span><br><span class="line"><span class="comment">     * an higher frequency. */</span></span><br><span class="line">    <span class="comment">// 即使AOF重写错误，也刷新AOF缓冲区</span></span><br><span class="line">    run_with_period(<span class="number">1000</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (server.aof_last_write_status == C_ERR)</span><br><span class="line">            flushAppendOnlyFile(<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Close clients that need to be closed asynchronous */</span></span><br><span class="line">    <span class="comment">// 异步关闭客户端</span></span><br><span class="line">    freeClientsInAsyncFreeQueue();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Clear the paused clients flag if needed. */</span></span><br><span class="line">    <span class="comment">// 如果需要解除客户端暂停状态</span></span><br><span class="line">    clientsArePaused(); <span class="comment">/* Don't check return value, just use the side effect.*/</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Replication cron function -- used to reconnect to master,</span></span><br><span class="line"><span class="comment">     * detect transfer failures, start background RDB transfers and so forth. */</span></span><br><span class="line">    <span class="comment">// 周期性复制任务</span></span><br><span class="line">    run_with_period(<span class="number">1000</span>) replicationCron();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Run the Redis Cluster cron. */</span></span><br><span class="line">    <span class="comment">// 集群周期性任务</span></span><br><span class="line">    run_with_period(<span class="number">100</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (server.cluster_enabled) clusterCron();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Run the Sentinel timer if we are in sentinel mode. */</span></span><br><span class="line">    <span class="comment">// 哨兵timer</span></span><br><span class="line">    run_with_period(<span class="number">100</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (server.sentinel_mode) sentinelTimer();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Cleanup expired MIGRATE cached sockets. */</span></span><br><span class="line">    <span class="comment">// 清理socket链接</span></span><br><span class="line">    run_with_period(<span class="number">1000</span>) &#123;</span><br><span class="line">        migrateCloseTimedoutSockets();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Start a scheduled BGSAVE if the corresponding flag is set. This is</span></span><br><span class="line"><span class="comment">     * useful when we are forced to postpone a BGSAVE because an AOF</span></span><br><span class="line"><span class="comment">     * rewrite is in progress.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * Note: this code must be after the replicationCron() call above so</span></span><br><span class="line"><span class="comment">     * make sure when refactoring this file to keep this order. This is useful</span></span><br><span class="line"><span class="comment">     * because we want to give priority to RDB savings for replication. */</span></span><br><span class="line">    <span class="comment">// 如果设置了相应标志，则启动预定的BGSAVE。</span></span><br><span class="line">    <span class="comment">// 这是非常有用的，当我们强制延迟BGSAVE，因为AOF重写正在执行</span></span><br><span class="line">    <span class="keyword">if</span> (server.rdb_child_pid == <span class="number">-1</span> &amp;&amp; server.aof_child_pid == <span class="number">-1</span> &amp;&amp;</span><br><span class="line">        server.rdb_bgsave_scheduled &amp;&amp;</span><br><span class="line">        (server.unixtime-server.lastbgsave_try &gt; CONFIG_BGSAVE_RETRY_DELAY ||</span><br><span class="line">         server.lastbgsave_status == C_OK))</span><br><span class="line">    &#123;</span><br><span class="line">        rdbSaveInfo rsi, *rsiptr;</span><br><span class="line">        rsiptr = rdbPopulateSaveInfo(&amp;rsi);</span><br><span class="line">        <span class="keyword">if</span> (rdbSaveBackground(server.rdb_filename,rsiptr) == C_OK)</span><br><span class="line">            server.rdb_bgsave_scheduled = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 周期循环+1</span></span><br><span class="line">    server.cronloops++;</span><br><span class="line">    <span class="comment">// 默认100ms</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1000</span>/server.hz;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>进入事件循环前调用</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Redis进入事件循环前被调用，准备文件描述符</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">beforeSleep</span><span class="params">(struct aeEventLoop *eventLoop)</span> </span>&#123;</span><br><span class="line">    UNUSED(eventLoop);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Call the Redis Cluster before sleep function. Note that this function</span></span><br><span class="line"><span class="comment">     * may change the state of Redis Cluster (from ok to fail or vice versa),</span></span><br><span class="line"><span class="comment">     * so it's a good idea to call it before serving the unblocked clients</span></span><br><span class="line"><span class="comment">     * later in this function. */</span></span><br><span class="line">    <span class="comment">// 集群模式开启beforeSleep, 可能会改变redis集群的状态，</span></span><br><span class="line">    <span class="keyword">if</span> (server.cluster_enabled) clusterBeforeSleep();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Run a fast expire cycle (the called function will return</span></span><br><span class="line"><span class="comment">     * ASAP if a fast cycle is not needed). */</span></span><br><span class="line">    <span class="comment">// 主节点开启过期键删除，则以快速模式运行</span></span><br><span class="line">    <span class="keyword">if</span> (server.active_expire_enabled &amp;&amp; server.masterhost == <span class="literal">NULL</span>)</span><br><span class="line">        activeExpireCycle(ACTIVE_EXPIRE_CYCLE_FAST);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Send all the slaves an ACK request if at least one client blocked</span></span><br><span class="line"><span class="comment">     * during the previous event loop iteration. */</span></span><br><span class="line">    <span class="comment">// 如果在前一个事件循环迭代期间有客户端被阻塞，则向所有从节点发送ACK请求</span></span><br><span class="line">    <span class="keyword">if</span> (server.get_ack_from_slaves) &#123;</span><br><span class="line">        robj *argv[<span class="number">3</span>];</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 构建参数</span></span><br><span class="line">        argv[<span class="number">0</span>] = createStringObject(<span class="string">"REPLCONF"</span>,<span class="number">8</span>);</span><br><span class="line">        argv[<span class="number">1</span>] = createStringObject(<span class="string">"GETACK"</span>,<span class="number">6</span>);</span><br><span class="line">        argv[<span class="number">2</span>] = createStringObject(<span class="string">"*"</span>,<span class="number">1</span>); <span class="comment">/* Not used argument. */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 给从节点服务器发送请求</span></span><br><span class="line">        replicationFeedSlaves(server.slaves, server.slaveseldb, argv, <span class="number">3</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 释放构建的参数</span></span><br><span class="line">        decrRefCount(argv[<span class="number">0</span>]);</span><br><span class="line">        decrRefCount(argv[<span class="number">1</span>]);</span><br><span class="line">        decrRefCount(argv[<span class="number">2</span>]);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 清空标志</span></span><br><span class="line">        server.get_ack_from_slaves = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Unblock all the clients blocked for synchronous replication</span></span><br><span class="line"><span class="comment">     * in WAIT. */</span></span><br><span class="line">    <span class="comment">// 解除所有等待WAIT命令而被阻塞的客户端</span></span><br><span class="line">    <span class="keyword">if</span> (listLength(server.clients_waiting_acks))</span><br><span class="line">        processClientsWaitingReplicas();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Check if there are clients unblocked by modules that implement</span></span><br><span class="line"><span class="comment">     * blocking commands. */</span></span><br><span class="line">    <span class="comment">// 检查是否有模块阻塞命令解除阻塞客户端</span></span><br><span class="line">    moduleHandleBlockedClients();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Try to process pending commands for clients that were just unblocked. */</span></span><br><span class="line">    <span class="comment">// 处理非阻塞客户端的输入缓冲区</span></span><br><span class="line">    <span class="keyword">if</span> (listLength(server.unblocked_clients))</span><br><span class="line">        processUnblockedClients();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Write the AOF buffer on disk */</span></span><br><span class="line">    <span class="comment">// 将AOF缓冲区冲洗到磁盘中</span></span><br><span class="line">    flushAppendOnlyFile(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Handle writes with pending output buffers. */</span></span><br><span class="line">    <span class="comment">// 处理待写的输出缓冲区</span></span><br><span class="line">    handleClientsWithPendingWrites();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Before we are going to sleep, let the threads access the dataset by</span></span><br><span class="line"><span class="comment">     * releasing the GIL. Redis main thread will not touch anything at this</span></span><br><span class="line"><span class="comment">     * time. */</span></span><br><span class="line">    <span class="comment">// 在进入sleep之前，让线程释放GIL来访问数据集。</span></span><br><span class="line">    <span class="comment">// Redis主线程此时不会触及任何内容</span></span><br><span class="line">    <span class="keyword">if</span> (moduleCount()) moduleReleaseGIL();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/09/13/redis/19_客户端/" rel="next" title="Redis源码阅读(十九) 客户端">
+                <i class="fa fa-chevron-left"></i> Redis源码阅读(十九) 客户端
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/09/25/course/6.828/A.实验准备/" rel="prev" title="">
+                 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-服务器定义"><span class="nav-number">1.</span> <span class="nav-text">1. 服务器定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Redis命令"><span class="nav-number">2.</span> <span class="nav-text">2. Redis命令</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-命令表-commands"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 命令表 commands</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-命令请求执行过程"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 命令请求执行过程</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Redis周期性任务"><span class="nav-number">3.</span> <span class="nav-text">3. Redis周期性任务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-更新服务器时间缓存"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 更新服务器时间缓存</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-处理SIGTERM信号"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 处理SIGTERM信号</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-客户端资源管理clientsCron"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 客户端资源管理clientsCron()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-管理数据库资源databaseCron"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 管理数据库资源databaseCron()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-5-持久化记录"><span class="nav-number">3.5.</span> <span class="nav-text">3.5 持久化记录</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-6-更新信息并记录日志"><span class="nav-number">3.6.</span> <span class="nav-text">3.6 更新信息并记录日志</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-7-其他一些任务"><span class="nav-number">3.7.</span> <span class="nav-text">3.7 其他一些任务</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-number">4.</span> <span class="nav-text">4. 源码剖析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

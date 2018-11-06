@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="Redis 有序集合和集合一样也是string类型元素的集合，且不允许重复的成员，不同的是每个元素都会关联一个double类型的分数，redis通过分数来为集合中的成员进行从小到大的排序，有序集合的成员是唯一的,但分数(score)却可以重复。集合中最大的成员数为 2^32 - 1 。 1. 编码有序集合对象的编码可以是ZIPLIST或SKIPLIST。 ZIPLIST编码的有序集合对象使用压缩列">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码阅读(十四) 有序集合对象">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/08/27/redis/14_有序集合对象/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="Redis 有序集合和集合一样也是string类型元素的集合，且不允许重复的成员，不同的是每个元素都会关联一个double类型的分数，redis通过分数来为集合中的成员进行从小到大的排序，有序集合的成员是唯一的,但分数(score)却可以重复。集合中最大的成员数为 2^32 - 1 。 1. 编码有序集合对象的编码可以是ZIPLIST或SKIPLIST。 ZIPLIST编码的有序集合对象使用压缩列">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-08-27T10:25:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis源码阅读(十四) 有序集合对象">
+<meta name="twitter:description" content="Redis 有序集合和集合一样也是string类型元素的集合，且不允许重复的成员，不同的是每个元素都会关联一个double类型的分数，redis通过分数来为集合中的成员进行从小到大的排序，有序集合的成员是唯一的,但分数(score)却可以重复。集合中最大的成员数为 2^32 - 1 。 1. 编码有序集合对象的编码可以是ZIPLIST或SKIPLIST。 ZIPLIST编码的有序集合对象使用压缩列">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/08/27/redis/14_有序集合对象/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis源码阅读(十四) 有序集合对象 | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/08/27/redis/14_有序集合对象/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis源码阅读(十四) 有序集合对象
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-08-27 17:01:41 / 修改时间：18:25:26" itemprop="dateCreated datePublished" datetime="2018-08-27T17:01:41+08:00">2018-08-27</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/源码阅读/" itemprop="url" rel="index"><span itemprop="name">源码阅读</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Redis 有序集合和集合一样也是string类型元素的集合，且不允许重复的成员，不同的是每个元素都会关联一个double类型的分数，redis通过分数来为集合中的成员进行从小到大的排序，有序集合的成员是唯一的,但分数(score)却可以重复。集合中最大的成员数为 2^32 - 1 。</p>
+<h3 id="1-编码"><a href="#1-编码" class="headerlink" title="1. 编码"></a>1. 编码</h3><p>有序集合对象的编码可以是ZIPLIST或SKIPLIST。</p>
+<p>ZIPLIST编码的有序集合对象使用压缩列表作为底层实现，每个元素使用两个挨在一起的结点保存，第一个保存成员member，第二个保存分数score。</p>
+<p>SKIPLIST编码的有序集合对象使用ZSET结构作为底层实现，包括了一个跳跃表，一个字典。zsl跳跃表按照分数值从小到大保存了集合的成员，跳跃表结点object属性保存成员，score属性保存成员的分数值。dict字典保存了成员到分数的映射，每个键值对都是一个集合成员，字典的键保存成员，字典的值保存成员的分数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zset</span> &#123;</span></span><br><span class="line">    <span class="comment">// 字典</span></span><br><span class="line">    dict *dict;</span><br><span class="line">    <span class="comment">// 跳跃表</span></span><br><span class="line">    zskiplist *zsl;</span><br><span class="line">&#125; zset;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>使用字典和跳跃表保存有序集合成员是为了更好的优化操作。在获取成员和分数时，使用字典可以有效减少查询时间，在进行RANK等操作时，由于字典的无序，遍历查询效果很低，所以使用跳跃表的方式可以减少查询时间。</p>
+</blockquote>
+<h3 id="2-编码转换"><a href="#2-编码转换" class="headerlink" title="2. 编码转换"></a>2. 编码转换</h3><p>当有序集合对象满足下面条件时使用ZIPLIST编码：</p>
+<ol>
+<li>有序集合对象存储的所有元素成员长度小于64字节。</li>
+<li>有序集合对象存储的元素个数不超过128.</li>
+</ol>
+<blockquote>
+<p>配置文件中zset-max-ziplist-value和zset-max-ziplist-entries可以修改其上限</p>
+</blockquote>
+<h3 id="3-命令"><a href="#3-命令" class="headerlink" title="3. 命令"></a>3. 命令</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ZADD</td>
+<td>向有序集合添加一个或多个成员，或者更新已存在成员的分数</td>
+</tr>
+<tr>
+<td>ZCARD</td>
+<td>获取有序集合的成员数</td>
+</tr>
+<tr>
+<td>ZCOUNT</td>
+<td>计算在有序集合中指定区间分数的成员数</td>
+</tr>
+<tr>
+<td>ZINCRBY</td>
+<td>有序集合中对指定成员的分数加上增量 increment</td>
+</tr>
+<tr>
+<td>ZINTERSTORE</td>
+<td>计算给定的一个或多个有序集的交集并将结果集存储在新的有序集合 key 中</td>
+</tr>
+<tr>
+<td>ZLEXCOUNT</td>
+<td>在有序集合中计算指定字典区间内成员数量</td>
+</tr>
+<tr>
+<td>ZRANGE</td>
+<td>通过索引区间返回有序集合成指定区间内的成员</td>
+</tr>
+<tr>
+<td>ZRANGEBYLEX</td>
+<td>通过字典区间返回有序集合的成员</td>
+</tr>
+<tr>
+<td>ZRANGEBYSCORE</td>
+<td>通过分数返回有序集合指定区间内的成员</td>
+</tr>
+<tr>
+<td>ZRANK</td>
+<td>返回有序集合中指定成员的索引</td>
+</tr>
+<tr>
+<td>ZREM</td>
+<td>移除有序集合中的一个或多个成员</td>
+</tr>
+<tr>
+<td>ZREMRANGEBYLEX</td>
+<td>移除有序集合中给定的字典区间的所有成员</td>
+</tr>
+<tr>
+<td>ZREMRANGEBYRANK</td>
+<td>移除有序集合中给定的排名区间的所有成员</td>
+</tr>
+<tr>
+<td>ZREMRANGEBYSCORE</td>
+<td>移除有序集合中给定的分数区间的所有成员</td>
+</tr>
+<tr>
+<td>ZREVRANGE</td>
+<td>返回有序集中指定区间内的成员，通过索引，分数从高到底</td>
+</tr>
+<tr>
+<td>ZREVRANGEBYSCORE</td>
+<td>返回有序集中指定分数区间内的成员，分数从高到低排序</td>
+</tr>
+<tr>
+<td>ZREVRANK</td>
+<td>返回有序集合中指定成员的排名，有序集成员按分数值递减(从大到小)排序</td>
+</tr>
+<tr>
+<td>ZSCORE</td>
+<td>返回有序集中，成员的分数值</td>
+</tr>
+<tr>
+<td>ZUNIONSTORE</td>
+<td>计算给定的一个或多个有序集的并集，并存储在新的 key 中</td>
+</tr>
+<tr>
+<td>ZSCAN</td>
+<td>迭代有序集合中的元素（包括元素成员和元素分值）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-源码剖析"><a href="#4-源码剖析" class="headerlink" title="4. 源码剖析"></a>4. 源码剖析</h3><ul>
+<li>编码转换</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">zsetConvert</span><span class="params">(robj *zobj, <span class="keyword">int</span> encoding)</span> </span>&#123;</span><br><span class="line">    zset *zs;</span><br><span class="line">    zskiplistNode *node, *next;</span><br><span class="line">    sds ele;</span><br><span class="line">    <span class="keyword">double</span> score;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 不需要转换</span></span><br><span class="line">    <span class="keyword">if</span> (zobj-&gt;encoding == encoding) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ZIPLIST 转 SKIPLIST</span></span><br><span class="line">    <span class="keyword">if</span> (zobj-&gt;encoding == OBJ_ENCODING_ZIPLIST) &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl = zobj-&gt;ptr;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *eptr, *sptr;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *vstr;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">int</span> vlen;</span><br><span class="line">        <span class="keyword">long</span> <span class="keyword">long</span> vlong;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (encoding != OBJ_ENCODING_SKIPLIST)</span><br><span class="line">            serverPanic(<span class="string">"Unknown target encoding"</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 分配跳跃表空间</span></span><br><span class="line">        zs = zmalloc(<span class="keyword">sizeof</span>(*zs));</span><br><span class="line">        <span class="comment">// 创建字典</span></span><br><span class="line">        zs-&gt;dict = dictCreate(&amp;zsetDictType,<span class="literal">NULL</span>);</span><br><span class="line">        <span class="comment">// 创建跳跃表</span></span><br><span class="line">        zs-&gt;zsl = zslCreate();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 首地址</span></span><br><span class="line">        eptr = ziplistIndex(zl,<span class="number">0</span>);</span><br><span class="line">        serverAssertWithInfo(<span class="literal">NULL</span>,zobj,eptr != <span class="literal">NULL</span>);</span><br><span class="line">        <span class="comment">// 分数地址</span></span><br><span class="line">        sptr = ziplistNext(zl,eptr);</span><br><span class="line">        serverAssertWithInfo(<span class="literal">NULL</span>,zobj,sptr != <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 遍历</span></span><br><span class="line">        <span class="keyword">while</span> (eptr != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="comment">// 获取分数</span></span><br><span class="line">            score = zzlGetScore(sptr);</span><br><span class="line">            serverAssertWithInfo(<span class="literal">NULL</span>,zobj,ziplistGet(eptr,&amp;vstr,&amp;vlen,&amp;vlong));</span><br><span class="line">            <span class="comment">// 创建分数字符串</span></span><br><span class="line">            <span class="keyword">if</span> (vstr == <span class="literal">NULL</span>)</span><br><span class="line">                ele = sdsfromlonglong(vlong);</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                ele = sdsnewlen((<span class="keyword">char</span>*)vstr,vlen);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 插入分数结点</span></span><br><span class="line">            node = zslInsert(zs-&gt;zsl,score,ele);</span><br><span class="line">            <span class="comment">// 添加到字典</span></span><br><span class="line">            serverAssert(dictAdd(zs-&gt;dict,ele,&amp;node-&gt;score) == DICT_OK);</span><br><span class="line">            zzlNext(zl,&amp;eptr,&amp;sptr);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 释放之前的跳跃表</span></span><br><span class="line">        zfree(zobj-&gt;ptr);</span><br><span class="line">        <span class="comment">// 指向新的压缩列表</span></span><br><span class="line">        zobj-&gt;ptr = zs;</span><br><span class="line">        <span class="comment">// 编码修改</span></span><br><span class="line">        zobj-&gt;encoding = OBJ_ENCODING_SKIPLIST;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (zobj-&gt;encoding == OBJ_ENCODING_SKIPLIST) &#123;</span><br><span class="line">        <span class="comment">// SKIPLIST 转 ZIPLIST</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl = ziplistNew();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (encoding != OBJ_ENCODING_ZIPLIST)</span><br><span class="line">            serverPanic(<span class="string">"Unknown target encoding"</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Approach similar to zslFree(), since we want to free the skiplist at</span></span><br><span class="line"><span class="comment">         * the same time as creating the ziplist. */</span></span><br><span class="line">        <span class="comment">// 获取当前压缩列表地址</span></span><br><span class="line">        zs = zobj-&gt;ptr;</span><br><span class="line">        <span class="comment">// 释放字典</span></span><br><span class="line">        dictRelease(zs-&gt;dict);</span><br><span class="line">        <span class="comment">// 跳跃表头结点</span></span><br><span class="line">        node = zs-&gt;zsl-&gt;header-&gt;level[<span class="number">0</span>].forward;</span><br><span class="line">        <span class="comment">// 释放头结点</span></span><br><span class="line">        zfree(zs-&gt;zsl-&gt;header);</span><br><span class="line">        zfree(zs-&gt;zsl);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 遍历跳跃表</span></span><br><span class="line">        <span class="keyword">while</span> (node) &#123;</span><br><span class="line">            <span class="comment">// 插入新结点到压缩列表</span></span><br><span class="line">            zl = zzlInsertAt(zl,<span class="literal">NULL</span>,node-&gt;ele,node-&gt;score);</span><br><span class="line">            <span class="comment">// 下个结点</span></span><br><span class="line">            next = node-&gt;level[<span class="number">0</span>].forward;</span><br><span class="line">            <span class="comment">// 释放跳跃表结点</span></span><br><span class="line">            zslFreeNode(node);</span><br><span class="line">            node = next;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 释放跳跃表</span></span><br><span class="line">        zfree(zs);</span><br><span class="line">        <span class="comment">// 有序接对象指向压缩列表</span></span><br><span class="line">        zobj-&gt;ptr = zl;</span><br><span class="line">        <span class="comment">// 编码</span></span><br><span class="line">        zobj-&gt;encoding = OBJ_ENCODING_ZIPLIST;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        serverPanic(<span class="string">"Unknown sorted set encoding"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>添加成员</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">zsetAdd</span><span class="params">(robj *zobj, <span class="keyword">double</span> score, sds ele, <span class="keyword">int</span> *flags, <span class="keyword">double</span> *newscore)</span> </span>&#123;</span><br><span class="line">    <span class="comment">/* Turn options into simple to check vars. */</span></span><br><span class="line">    <span class="keyword">int</span> incr = (*flags &amp; ZADD_INCR) != <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">int</span> nx = (*flags &amp; ZADD_NX) != <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">int</span> xx = (*flags &amp; ZADD_XX) != <span class="number">0</span>;</span><br><span class="line">    *flags = <span class="number">0</span>; <span class="comment">/* We'll return our response flags. */</span></span><br><span class="line">    <span class="keyword">double</span> curscore;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* NaN as input is an error regardless of all the other parameters. */</span></span><br><span class="line">    <span class="comment">// 判断分数释放合法</span></span><br><span class="line">    <span class="keyword">if</span> (isnan(score)) &#123;</span><br><span class="line">        *flags = ZADD_NAN;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Update the sorted set according to its encoding. */</span></span><br><span class="line">    <span class="keyword">if</span> (zobj-&gt;encoding == OBJ_ENCODING_ZIPLIST) &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *eptr;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 压缩列表中查找结点</span></span><br><span class="line">        <span class="keyword">if</span> ((eptr = zzlFind(zobj-&gt;ptr,ele,&amp;curscore)) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="comment">/* NX? Return, same element already exists. */</span></span><br><span class="line">            <span class="comment">// NX 表不存在则添加</span></span><br><span class="line">            <span class="keyword">if</span> (nx) &#123;</span><br><span class="line">                <span class="comment">// 存在则直接返回</span></span><br><span class="line">                *flags |= ZADD_NOP;</span><br><span class="line">                <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Prepare the score for the increment if needed. */</span></span><br><span class="line">            <span class="comment">// 递增</span></span><br><span class="line">            <span class="keyword">if</span> (incr) &#123;</span><br><span class="line">                <span class="comment">// 计算新分数</span></span><br><span class="line">                score += curscore;</span><br><span class="line">                <span class="comment">// 判断分数合法</span></span><br><span class="line">                <span class="keyword">if</span> (isnan(score)) &#123;</span><br><span class="line">                    *flags |= ZADD_NAN;</span><br><span class="line">                    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">// 记录新分数</span></span><br><span class="line">                <span class="keyword">if</span> (newscore) *newscore = score;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Remove and re-insert when score changed. */</span></span><br><span class="line">            <span class="comment">// 分数要更新</span></span><br><span class="line">            <span class="keyword">if</span> (score != curscore) &#123;</span><br><span class="line">                <span class="comment">// 删除原有成员和分数</span></span><br><span class="line">                zobj-&gt;ptr = zzlDelete(zobj-&gt;ptr,eptr);</span><br><span class="line">                <span class="comment">// 添加新的成员分数</span></span><br><span class="line">                zobj-&gt;ptr = zzlInsert(zobj-&gt;ptr,ele,score);</span><br><span class="line">                <span class="comment">// 标识更新</span></span><br><span class="line">                *flags |= ZADD_UPDATED;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!xx) &#123;</span><br><span class="line">            <span class="comment">/* Optimize: check if the element is too large or the list</span></span><br><span class="line"><span class="comment">             * becomes too long *before* executing zzlInsert. */</span></span><br><span class="line">            <span class="comment">// 压缩列表中直接插入</span></span><br><span class="line">            zobj-&gt;ptr = zzlInsert(zobj-&gt;ptr,ele,score);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 根据有序集合长度，判断是否需要转换编码</span></span><br><span class="line">            <span class="keyword">if</span> (zzlLength(zobj-&gt;ptr) &gt; server.zset_max_ziplist_entries)</span><br><span class="line">                zsetConvert(zobj,OBJ_ENCODING_SKIPLIST);</span><br><span class="line">            <span class="keyword">if</span> (sdslen(ele) &gt; server.zset_max_ziplist_value)</span><br><span class="line">                zsetConvert(zobj,OBJ_ENCODING_SKIPLIST);</span><br><span class="line">            <span class="keyword">if</span> (newscore) *newscore = score;</span><br><span class="line">            *flags |= ZADD_ADDED;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            *flags |= ZADD_NOP;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (zobj-&gt;encoding == OBJ_ENCODING_SKIPLIST) &#123;</span><br><span class="line">        <span class="comment">// 获取跳跃表</span></span><br><span class="line">        zset *zs = zobj-&gt;ptr;</span><br><span class="line">        zskiplistNode *znode;</span><br><span class="line">        dictEntry *de;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 查找跳跃表中的ele</span></span><br><span class="line">        de = dictFind(zs-&gt;dict,ele);</span><br><span class="line">        <span class="keyword">if</span> (de != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="comment">/* NX? Return, same element already exists. */</span></span><br><span class="line">            <span class="comment">// 不存在才操作，存在则直接返回</span></span><br><span class="line">            <span class="keyword">if</span> (nx) &#123;</span><br><span class="line">                *flags |= ZADD_NOP;</span><br><span class="line">                <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 获取当前分数值</span></span><br><span class="line">            curscore = *(<span class="keyword">double</span>*)dictGetVal(de);</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Prepare the score for the increment if needed. */</span></span><br><span class="line">            <span class="comment">// 递增</span></span><br><span class="line">            <span class="keyword">if</span> (incr) &#123;</span><br><span class="line">                score += curscore;</span><br><span class="line">                <span class="keyword">if</span> (isnan(score)) &#123;</span><br><span class="line">                    *flags |= ZADD_NAN;</span><br><span class="line">                    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (newscore) *newscore = score;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Remove and re-insert when score changes. */</span></span><br><span class="line">            <span class="comment">// 判断分数需要修改</span></span><br><span class="line">            <span class="keyword">if</span> (score != curscore) &#123;</span><br><span class="line">                zskiplistNode *node;</span><br><span class="line">                <span class="comment">// 删除原有结点</span></span><br><span class="line">                serverAssert(zslDelete(zs-&gt;zsl,curscore,ele,&amp;node));</span><br><span class="line">                <span class="comment">// 插入新的分数结点</span></span><br><span class="line">                znode = zslInsert(zs-&gt;zsl,score,node-&gt;ele);</span><br><span class="line">                <span class="comment">/* We reused the node-&gt;ele SDS string, free the node now</span></span><br><span class="line"><span class="comment">                 * since zslInsert created a new one. */</span></span><br><span class="line">                <span class="comment">// 释放之前的结点</span></span><br><span class="line">                node-&gt;ele = <span class="literal">NULL</span>;</span><br><span class="line">                zslFreeNode(node);</span><br><span class="line">                <span class="comment">/* Note that we did not removed the original element from</span></span><br><span class="line"><span class="comment">                 * the hash table representing the sorted set, so we just</span></span><br><span class="line"><span class="comment">                 * update the score. */</span></span><br><span class="line">                <span class="comment">// 更新结点的分数</span></span><br><span class="line">                dictGetVal(de) = &amp;znode-&gt;score; <span class="comment">/* Update score ptr. */</span></span><br><span class="line">                *flags |= ZADD_UPDATED;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!xx) &#123;</span><br><span class="line">            <span class="comment">// 复制成员字符串</span></span><br><span class="line">            ele = sdsdup(ele);</span><br><span class="line">            <span class="comment">// 添加新结点</span></span><br><span class="line">            znode = zslInsert(zs-&gt;zsl,score,ele);</span><br><span class="line">            serverAssert(dictAdd(zs-&gt;dict,ele,&amp;znode-&gt;score) == DICT_OK);</span><br><span class="line">            *flags |= ZADD_ADDED;</span><br><span class="line">            <span class="keyword">if</span> (newscore) *newscore = score;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            *flags |= ZADD_NOP;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        serverPanic(<span class="string">"Unknown sorted set encoding"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; <span class="comment">/* Never reached. */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>删除成员</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">zsetDel</span><span class="params">(robj *zobj, sds ele)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (zobj-&gt;encoding == OBJ_ENCODING_ZIPLIST) &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *eptr;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 寻找结点，并删除</span></span><br><span class="line">        <span class="keyword">if</span> ((eptr = zzlFind(zobj-&gt;ptr,ele,<span class="literal">NULL</span>)) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            zobj-&gt;ptr = zzlDelete(zobj-&gt;ptr,eptr);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (zobj-&gt;encoding == OBJ_ENCODING_SKIPLIST) &#123;</span><br><span class="line">        <span class="comment">// 跳跃表</span></span><br><span class="line">        zset *zs = zobj-&gt;ptr;</span><br><span class="line">        dictEntry *de;</span><br><span class="line">        <span class="keyword">double</span> score;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 软删除结点</span></span><br><span class="line">        de = dictUnlink(zs-&gt;dict,ele);</span><br><span class="line">        <span class="keyword">if</span> (de != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="comment">/* Get the score in order to delete from the skiplist later. */</span></span><br><span class="line">            <span class="comment">// 获取分数</span></span><br><span class="line">            score = *(<span class="keyword">double</span>*)dictGetVal(de);</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Delete from the hash table and later from the skiplist.</span></span><br><span class="line"><span class="comment">             * Note that the order is important: deleting from the skiplist</span></span><br><span class="line"><span class="comment">             * actually releases the SDS string representing the element,</span></span><br><span class="line"><span class="comment">             * which is shared between the skiplist and the hash table, so</span></span><br><span class="line"><span class="comment">             * we need to delete from the skiplist as the final step. */</span></span><br><span class="line">            dictFreeUnlinkedEntry(zs-&gt;dict,de);</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Delete from skiplist. */</span></span><br><span class="line">            <span class="keyword">int</span> retval = zslDelete(zs-&gt;zsl,score,ele,<span class="literal">NULL</span>);</span><br><span class="line">            serverAssert(retval);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (htNeedsResize(zs-&gt;dict)) dictResize(zs-&gt;dict);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        serverPanic(<span class="string">"Unknown sorted set encoding"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; <span class="comment">/* No such element found. */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>ZADD命令底层实现</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">zaddGenericCommand</span><span class="params">(client *c, <span class="keyword">int</span> flags)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">char</span> *nanerr = <span class="string">"resulting score is not a number (NaN)"</span>;</span><br><span class="line">    robj *key = c-&gt;argv[<span class="number">1</span>];</span><br><span class="line">    robj *zobj;</span><br><span class="line">    sds ele;</span><br><span class="line">    <span class="keyword">double</span> score = <span class="number">0</span>, *scores = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">int</span> j, elements;</span><br><span class="line">    <span class="keyword">int</span> scoreidx = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">/* The following vars are used in order to track what the command actually</span></span><br><span class="line"><span class="comment">     * did during the execution, to reply to the client and to trigger the</span></span><br><span class="line"><span class="comment">     * notification of keyspace change. */</span></span><br><span class="line">    <span class="keyword">int</span> added = <span class="number">0</span>;      <span class="comment">/* Number of new elements added. */</span></span><br><span class="line">    <span class="keyword">int</span> updated = <span class="number">0</span>;    <span class="comment">/* Number of elements with updated score. */</span></span><br><span class="line">    <span class="keyword">int</span> processed = <span class="number">0</span>;  <span class="comment">/* Number of elements processed, may remain zero with</span></span><br><span class="line"><span class="comment">                           options like XX. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Parse options. At the end 'scoreidx' is set to the argument position</span></span><br><span class="line"><span class="comment">     * of the score of the first score-element pair. */</span></span><br><span class="line">    <span class="comment">// 解析命令参数选项</span></span><br><span class="line">    scoreidx = <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">while</span>(scoreidx &lt; c-&gt;argc) &#123;</span><br><span class="line">        <span class="keyword">char</span> *opt = c-&gt;argv[scoreidx]-&gt;ptr;</span><br><span class="line">        <span class="keyword">if</span> (!strcasecmp(opt,<span class="string">"nx"</span>)) flags |= ZADD_NX;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(opt,<span class="string">"xx"</span>)) flags |= ZADD_XX;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(opt,<span class="string">"ch"</span>)) flags |= ZADD_CH;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(opt,<span class="string">"incr"</span>)) flags |= ZADD_INCR;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">break</span>;</span><br><span class="line">        scoreidx++;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Turn options into simple to check vars. */</span></span><br><span class="line">    <span class="comment">// 设置flag对应的选项</span></span><br><span class="line">    <span class="keyword">int</span> incr = (flags &amp; ZADD_INCR) != <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">int</span> nx = (flags &amp; ZADD_NX) != <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">int</span> xx = (flags &amp; ZADD_XX) != <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">int</span> ch = (flags &amp; ZADD_CH) != <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* After the options, we expect to have an even number of args, since</span></span><br><span class="line"><span class="comment">     * we expect any number of score-element pairs. */</span></span><br><span class="line">    <span class="comment">// 计算元素个数</span></span><br><span class="line">    elements = c-&gt;argc-scoreidx;</span><br><span class="line">    <span class="keyword">if</span> (elements % <span class="number">2</span> || !elements) &#123;</span><br><span class="line">        <span class="comment">// 回复客户端错误</span></span><br><span class="line">        addReply(c,shared.syntaxerr);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    elements /= <span class="number">2</span>; <span class="comment">/* Now this holds the number of score-element pairs. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Check for incompatible options. */</span></span><br><span class="line">    <span class="comment">// 不合法的选项参数，回复客户端错误信息</span></span><br><span class="line">    <span class="keyword">if</span> (nx &amp;&amp; xx) &#123;</span><br><span class="line">        addReplyError(c,</span><br><span class="line">            <span class="string">"XX and NX options at the same time are not compatible"</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (incr &amp;&amp; elements &gt; <span class="number">1</span>) &#123;</span><br><span class="line">        addReplyError(c,</span><br><span class="line">            <span class="string">"INCR option supports a single increment-element pair"</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Start parsing all the scores, we need to emit any syntax error</span></span><br><span class="line"><span class="comment">     * before executing additions to the sorted set, as the command should</span></span><br><span class="line"><span class="comment">     * either execute fully or nothing at all. */</span></span><br><span class="line">    <span class="comment">// 存储所有成员分数</span></span><br><span class="line">    scores = zmalloc(<span class="keyword">sizeof</span>(<span class="keyword">double</span>)*elements);</span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; elements; j++) &#123;</span><br><span class="line">        <span class="keyword">if</span> (getDoubleFromObjectOrReply(c,c-&gt;argv[scoreidx+j*<span class="number">2</span>],&amp;scores[j],<span class="literal">NULL</span>)</span><br><span class="line">            != C_OK) <span class="keyword">goto</span> cleanup;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Lookup the key and create the sorted set if does not exist. */</span></span><br><span class="line">    <span class="comment">// db中查询有序集合对象</span></span><br><span class="line">    zobj = lookupKeyWrite(c-&gt;db,key);</span><br><span class="line">    <span class="keyword">if</span> (zobj == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="comment">// xx标志(存在则继续)，直接回复客户端</span></span><br><span class="line">        <span class="keyword">if</span> (xx) <span class="keyword">goto</span> reply_to_client; <span class="comment">/* No key + XX option: nothing to do. */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 根据配置参数判断有序集合底层编码</span></span><br><span class="line">        <span class="keyword">if</span> (server.zset_max_ziplist_entries == <span class="number">0</span> ||</span><br><span class="line">            server.zset_max_ziplist_value &lt; sdslen(c-&gt;argv[scoreidx+<span class="number">1</span>]-&gt;ptr))</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// SKIPLIST</span></span><br><span class="line">            zobj = createZsetObject();</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// ZIPLIST</span></span><br><span class="line">            zobj = createZsetZiplistObject();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// db中添加有序集合对象</span></span><br><span class="line">        dbAdd(c-&gt;db,key,zobj);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 找到类型错误，则回复客户端</span></span><br><span class="line">        <span class="keyword">if</span> (zobj-&gt;type != OBJ_ZSET) &#123;</span><br><span class="line">            addReply(c,shared.wrongtypeerr);</span><br><span class="line">            <span class="keyword">goto</span> cleanup;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 遍历所有成员</span></span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; elements; j++) &#123;</span><br><span class="line">        <span class="keyword">double</span> newscore;</span><br><span class="line">        <span class="comment">// 获取分数</span></span><br><span class="line">        score = scores[j];</span><br><span class="line">        <span class="keyword">int</span> retflags = flags;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取成员字符串</span></span><br><span class="line">        ele = c-&gt;argv[scoreidx+<span class="number">1</span>+j*<span class="number">2</span>]-&gt;ptr;</span><br><span class="line">        <span class="comment">// 添加成员和分数到有序集合</span></span><br><span class="line">        <span class="keyword">int</span> retval = zsetAdd(zobj, score, ele, &amp;retflags, &amp;newscore);</span><br><span class="line">        <span class="keyword">if</span> (retval == <span class="number">0</span>) &#123;</span><br><span class="line">            addReplyError(c,nanerr);</span><br><span class="line">            <span class="keyword">goto</span> cleanup;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 根据不同标识，计算不同操作的数量</span></span><br><span class="line">        <span class="keyword">if</span> (retflags &amp; ZADD_ADDED) added++;</span><br><span class="line">        <span class="keyword">if</span> (retflags &amp; ZADD_UPDATED) updated++;</span><br><span class="line">        <span class="keyword">if</span> (!(retflags &amp; ZADD_NOP)) processed++;</span><br><span class="line">        score = newscore;</span><br><span class="line">    &#125;</span><br><span class="line">    server.dirty += (added+updated);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 根据不同命令直接回复客户端</span></span><br><span class="line">reply_to_client:</span><br><span class="line">    <span class="keyword">if</span> (incr) &#123; <span class="comment">/* ZINCRBY or INCR option. */</span></span><br><span class="line">        <span class="keyword">if</span> (processed)</span><br><span class="line">            addReplyDouble(c,score);</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            addReply(c,shared.nullbulk);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123; <span class="comment">/* ZADD. */</span></span><br><span class="line">        addReplyLongLong(c,ch ? added+updated : added);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 清除分数数组</span></span><br><span class="line">cleanup:</span><br><span class="line">    zfree(scores);</span><br><span class="line">    <span class="comment">// 有添加或更新的则发送数据库有键发生修改</span></span><br><span class="line">    <span class="keyword">if</span> (added || updated) &#123;</span><br><span class="line">        signalModifiedKey(c-&gt;db,key);</span><br><span class="line">        notifyKeyspaceEvent(NOTIFY_ZSET,</span><br><span class="line">            incr ? <span class="string">"zincr"</span> : <span class="string">"zadd"</span>, key, c-&gt;db-&gt;id);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/23/redis/13_集合对象/" rel="next" title="Redis源码阅读(十三) 集合对象">
+                <i class="fa fa-chevron-left"></i> Redis源码阅读(十三) 集合对象
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/29/redis/15_Redis数据库/" rel="prev" title="Redis源码阅读(十五) 数据库对象">
+                Redis源码阅读(十五) 数据库对象 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-编码"><span class="nav-number">1.</span> <span class="nav-text">1. 编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-编码转换"><span class="nav-number">2.</span> <span class="nav-text">2. 编码转换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-命令"><span class="nav-number">3.</span> <span class="nav-text">3. 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-number">4.</span> <span class="nav-text">4. 源码剖析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

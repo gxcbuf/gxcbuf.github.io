@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="1. 编码字符串对象的编码可以是int、raw、embstr三种。  int: 对象保存的是整数值，并且可以使用long类型进行表示，那么ptr中存储的就是这个long的地址，并将编码设置为int，[0, 10000)范围的可以使用共享整数。  raw: 对象保存的是字符串，且长度大于44字节，使用raw编码。  embstr: 对象保存的是字符串，若长度小等于44字节，则使用embstr类型编码">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码阅读(十) 字符串对象">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/08/16/redis/10_字符串对象/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="1. 编码字符串对象的编码可以是int、raw、embstr三种。  int: 对象保存的是整数值，并且可以使用long类型进行表示，那么ptr中存储的就是这个long的地址，并将编码设置为int，[0, 10000)范围的可以使用共享整数。  raw: 对象保存的是字符串，且长度大于44字节，使用raw编码。  embstr: 对象保存的是字符串，若长度小等于44字节，则使用embstr类型编码">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-08-23T02:40:11.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis源码阅读(十) 字符串对象">
+<meta name="twitter:description" content="1. 编码字符串对象的编码可以是int、raw、embstr三种。  int: 对象保存的是整数值，并且可以使用long类型进行表示，那么ptr中存储的就是这个long的地址，并将编码设置为int，[0, 10000)范围的可以使用共享整数。  raw: 对象保存的是字符串，且长度大于44字节，使用raw编码。  embstr: 对象保存的是字符串，若长度小等于44字节，则使用embstr类型编码">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/08/16/redis/10_字符串对象/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis源码阅读(十) 字符串对象 | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/08/16/redis/10_字符串对象/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis源码阅读(十) 字符串对象
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-08-16 15:32:10" itemprop="dateCreated datePublished" datetime="2018-08-16T15:32:10+08:00">2018-08-16</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-08-23 10:40:11" itemprop="dateModified" datetime="2018-08-23T10:40:11+08:00">2018-08-23</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/源码阅读/" itemprop="url" rel="index"><span itemprop="name">源码阅读</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="1-编码"><a href="#1-编码" class="headerlink" title="1. 编码"></a>1. 编码</h3><p>字符串对象的编码可以是int、raw、embstr三种。</p>
+<ul>
+<li><p>int: 对象保存的是整数值，并且可以使用long类型进行表示，那么ptr中存储的就是这个long的地址，并将编码设置为int，[0, 10000)范围的可以使用共享整数。</p>
+</li>
+<li><p>raw: 对象保存的是字符串，且长度大于44字节，使用raw编码。</p>
+</li>
+<li><p>embstr: 对象保存的是字符串，若长度小等于44字节，则使用embstr类型编码，embstr是一种sds字符串，使用固定的SDS_TYPE_8进行存储，只进行一次内存分配，分配redis对象内存空间和sds对象内存空间，它们是连续存储的。</p>
+</li>
+</ul>
+<blockquote>
+<p>Redis中浮点类型作为字符串值来保存。</p>
+</blockquote>
+<h3 id="2-命令"><a href="#2-命令" class="headerlink" title="2. 命令"></a>2. 命令</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SET</td>
+<td>设置指定 key 的值 NX:仅key不存在 XX: 仅key存在 EX: 过期秒数 PX: 过期毫秒数</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>获取指定 key 的值。</td>
+</tr>
+<tr>
+<td>SETNX</td>
+<td>只有在 key 不存在时设置 key 的值</td>
+</tr>
+<tr>
+<td>SETEX</td>
+<td>设置key的值，并给定过期时间seconds</td>
+</tr>
+<tr>
+<td>GETSET</td>
+<td>将给定 key 的值设为 value ，并返回 key 的旧值(old value)</td>
+</tr>
+<tr>
+<td>SETRANGE</td>
+<td>用 value 参数覆写给定 key 所储存的字符串值，从偏移量 offset 开始</td>
+</tr>
+<tr>
+<td>GETRANGE</td>
+<td>获取key 中字符串值的[start,end]的值</td>
+</tr>
+<tr>
+<td>MSET</td>
+<td>同时设置一个或多个 key-value 对</td>
+</tr>
+<tr>
+<td>HGET</td>
+<td>获取所有(一个或多个)给定 key 的值</td>
+</tr>
+<tr>
+<td>INCR</td>
+<td>将 key 中储存的数字值增一</td>
+</tr>
+<tr>
+<td>INCRBY</td>
+<td>将 key 所储存的值加上给定的增量值（increment）</td>
+</tr>
+<tr>
+<td>INCRBYFLOAT</td>
+<td>将 key 所储存的值加上给定的浮点增量值（increment）</td>
+</tr>
+<tr>
+<td>DECR</td>
+<td>将 key 中储存的数字值增一</td>
+</tr>
+<tr>
+<td>DECRBY</td>
+<td>key 所储存的值减去给定的减量值（decrement）</td>
+</tr>
+<tr>
+<td>APPEND</td>
+<td>追加value到key所存储字符串的后面，key不存在则添加</td>
+</tr>
+<tr>
+<td>STRLEN</td>
+<td>获取key所存储字符串的长度</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>相同命令不同的编码区分</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">命令</th>
+<th style="text-align:center">int 编码</th>
+<th style="text-align:center">embstr编码</th>
+<th style="text-align:center">raw编码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">SET</td>
+<td style="text-align:center">底层使用整数值进行存储，[0,1000)使用共享整数存储</td>
+<td style="text-align:center">使用简单动态字符串存储，SDS_TYPE_8</td>
+<td style="text-align:center">使用简单动态字符串存储，长度超过44字节时使用</td>
+</tr>
+<tr>
+<td style="text-align:center">GET</td>
+<td style="text-align:center">拷贝底层存储的整数值，将其转换为字符串后返回给客户端</td>
+<td style="text-align:center">直接返回字符串给客户端</td>
+<td style="text-align:center">直接返回字符串给客户端</td>
+</tr>
+<tr>
+<td style="text-align:center">INCR</td>
+<td style="text-align:center">对整数值进行加法，计算结果仍能用在整数值范围，则直接存储，否则转换编码方式为RAW</td>
+<td style="text-align:center">取出字符串并尝试转换成long long类型，失败则告诉客户端，成功则创建新的字符串保存</td>
+<td style="text-align:center">取出字符串并尝试转换成long long类型，失败则告诉客户端，成功则创建新的字符串保存</td>
+</tr>
+<tr>
+<td style="text-align:center">INCRBYFLOAT</td>
+<td style="text-align:center">取出整数转换成long double，对齐进行浮点操作后，创建新的字符串对象保存起来</td>
+<td style="text-align:center">取出整数转换成long double，对齐进行浮点操作后，创建新的字符串对象保存起来</td>
+<td style="text-align:center">取出整数转换成long double，对齐进行浮点操作后，创建新的字符串对象保存起来</td>
+</tr>
+<tr>
+<td style="text-align:center">APPEND</td>
+<td style="text-align:center">调用 sdscatlen 函数，将字符串添加到末尾</td>
+<td style="text-align:center">调用 sdscatlen 函数，将字符串添加到末尾</td>
+<td style="text-align:center">调用 sdscatlen 函数，将字符串添加到末尾</td>
+</tr>
+<tr>
+<td style="text-align:center">STRLEN</td>
+<td style="text-align:center">直接获取字符串的长度</td>
+<td style="text-align:center">直接获取字符串的长度</td>
+<td style="text-align:center">直接获取字符串的长度</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>若对象进行了共享，那么修改对象的操作则会拷贝一个新的对象，而不是用原来的共享对象</p>
+</blockquote>
+<h3 id="3-源码剖析"><a href="#3-源码剖析" class="headerlink" title="3. 源码剖析"></a>3. 源码剖析</h3><ul>
+<li>创建字符串对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 根据创建的字符串长度，判断是否使用OBJ_ENCODING_EMBSTR编码</span></span><br><span class="line"><span class="comment"> * 使用jemalloc分配内存，会分配2的幂次方字节，所以我们会分配64字节</span></span><br><span class="line"><span class="comment"> * redisOob大小16字节，sdshdr8大小3字节，加1字节结束标识，共20字节</span></span><br><span class="line"><span class="comment"> * 所以embstr的限制为64-20 = 44字节</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> OBJ_ENCODING_EMBSTR_SIZE_LIMIT 44</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 超过44字节使用RAW编码方式，否则使用EMBSTR编码</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function">robj *<span class="title">createStringObject</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *ptr, <span class="keyword">size_t</span> len)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (len &lt;= OBJ_ENCODING_EMBSTR_SIZE_LIMIT)</span><br><span class="line">        <span class="keyword">return</span> createEmbeddedStringObject(ptr,len);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">return</span> createRawStringObject(ptr,len);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>通过long long类型创建字符串对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">createStringObjectFromLongLong</span><span class="params">(<span class="keyword">long</span> <span class="keyword">long</span> value)</span> </span>&#123;</span><br><span class="line">    robj *o;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// [0, 10000) 范围内整数共享</span></span><br><span class="line">    <span class="keyword">if</span> (value &gt;= <span class="number">0</span> &amp;&amp; value &lt; OBJ_SHARED_INTEGERS) &#123;</span><br><span class="line">        <span class="comment">// 添加整数的引用计数</span></span><br><span class="line">        incrRefCount(shared.integers[value]);</span><br><span class="line">        <span class="comment">// 获取整数值</span></span><br><span class="line">        o = shared.integers[value];</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123; <span class="comment">// 不在整数共享范围</span></span><br><span class="line">        <span class="comment">// [LONG_MIN, LONG_MAX], 使用字符串对象，编码使用OBJ_ENCODING_INT</span></span><br><span class="line">        <span class="keyword">if</span> (value &gt;= LONG_MIN &amp;&amp; value &lt;= LONG_MAX) &#123;</span><br><span class="line">            o = createObject(OBJ_STRING, <span class="literal">NULL</span>);</span><br><span class="line">            o-&gt;encoding = OBJ_ENCODING_INT;</span><br><span class="line">            <span class="comment">// 直接指向整数值</span></span><br><span class="line">            o-&gt;ptr = (<span class="keyword">void</span>*)((<span class="keyword">long</span>)value);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 不在[LONG_MIN,LONG_MAX] 范围则使用sds动态字符串存储, 编码OBJ_ENCODING_RAW</span></span><br><span class="line">            o = createObject(OBJ_STRING,sdsfromlonglong(value));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>尝试对字符串对象进行编码优化</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">tryObjectEncoding</span><span class="params">(robj *o)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> value;</span><br><span class="line">    sds s = o-&gt;ptr;</span><br><span class="line">    <span class="keyword">size_t</span> len;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Make sure this is a string object, the only type we encode</span></span><br><span class="line"><span class="comment">     * in this function. Other types use encoded memory efficient</span></span><br><span class="line"><span class="comment">     * representations but are handled by the commands implementing</span></span><br><span class="line"><span class="comment">     * the type. */</span></span><br><span class="line">    serverAssertWithInfo(<span class="literal">NULL</span>,o,o-&gt;type == OBJ_STRING);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We try some specialized encoding only for objects that are</span></span><br><span class="line"><span class="comment">     * RAW or EMBSTR encoded, in other words objects that are still</span></span><br><span class="line"><span class="comment">     * in represented by an actually array of chars. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 只有是RAW或EMBSTR编码是，才尝试重新编码</span></span><br><span class="line">    <span class="keyword">if</span> (!sdsEncodedObject(o)) <span class="keyword">return</span> o;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* It's not safe to encode shared objects: shared objects can be shared</span></span><br><span class="line"><span class="comment">     * everywhere in the "object space" of Redis and may end in places where</span></span><br><span class="line"><span class="comment">     * they are not handled. We handle them only as values in the keyspace. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 编码共享对象是不安全的</span></span><br><span class="line">    <span class="comment">// 若对象是共享的，则不进行编码</span></span><br><span class="line">     <span class="keyword">if</span> (o-&gt;refcount &gt; <span class="number">1</span>) <span class="keyword">return</span> o;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Check if we can represent this string as a long integer.</span></span><br><span class="line"><span class="comment">     * Note that we are sure that a string larger than 20 chars is not</span></span><br><span class="line"><span class="comment">     * representable as a 32 nor 64 bit integer. */</span></span><br><span class="line"></span><br><span class="line">     <span class="comment">// 判断字符串是否可以用整数表示</span></span><br><span class="line">     <span class="comment">// 注意：超过20位的字符串则无法用整数表示</span></span><br><span class="line">    len = sdslen(s);</span><br><span class="line">    <span class="keyword">if</span> (len &lt;= <span class="number">20</span> &amp;&amp; string2l(s,len,&amp;value)) &#123;</span><br><span class="line">        <span class="comment">/* This object is encodable as a long. Try to use a shared object.</span></span><br><span class="line"><span class="comment">         * Note that we avoid using shared integers when maxmemory is used</span></span><br><span class="line"><span class="comment">         * because every object needs to have a private LRU field for the LRU</span></span><br><span class="line"><span class="comment">         * algorithm to work well. */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// [0, 10000) 尝试使用共享整数</span></span><br><span class="line">        <span class="keyword">if</span> ((server.maxmemory == <span class="number">0</span> ||</span><br><span class="line">            !(server.maxmemory_policy &amp; MAXMEMORY_FLAG_NO_SHARED_INTEGERS)) &amp;&amp;</span><br><span class="line">            value &gt;= <span class="number">0</span> &amp;&amp;</span><br><span class="line">            value &lt; OBJ_SHARED_INTEGERS)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// 是否之前的对象</span></span><br><span class="line">            decrRefCount(o);</span><br><span class="line">            incrRefCount(shared.integers[value]);</span><br><span class="line">            <span class="keyword">return</span> shared.integers[value];</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 否则使用OBJ_ENCODING_INT编码</span></span><br><span class="line">            <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_RAW) sdsfree(o-&gt;ptr);</span><br><span class="line">            o-&gt;encoding = OBJ_ENCODING_INT;</span><br><span class="line">            o-&gt;ptr = (<span class="keyword">void</span>*) value;</span><br><span class="line">            <span class="keyword">return</span> o;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* If the string is small and is still RAW encoded,</span></span><br><span class="line"><span class="comment">     * try the EMBSTR encoding which is more efficient.</span></span><br><span class="line"><span class="comment">     * In this representation the object and the SDS string are allocated</span></span><br><span class="line"><span class="comment">     * in the same chunk of memory to save space and cache misses. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 若字符串长度小于EMBSTR的限制</span></span><br><span class="line">    <span class="keyword">if</span> (len &lt;= OBJ_ENCODING_EMBSTR_SIZE_LIMIT) &#123;</span><br><span class="line">        robj *emb;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 编码是EMBSTR则返回</span></span><br><span class="line">        <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_EMBSTR) <span class="keyword">return</span> o;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 否则使用EMBSTR编码</span></span><br><span class="line">        emb = createEmbeddedStringObject(s,sdslen(s));</span><br><span class="line">        <span class="comment">// 释放之前的对象</span></span><br><span class="line">        decrRefCount(o);</span><br><span class="line">        <span class="keyword">return</span> emb;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We can't encode the object...</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * Do the last try, and at least optimize the SDS string inside</span></span><br><span class="line"><span class="comment">     * the string object to require little space, in case there</span></span><br><span class="line"><span class="comment">     * is more than 10% of free space at the end of the SDS string.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * We do that only for relatively large strings as this branch</span></span><br><span class="line"><span class="comment">     * is only entered if the length of the string is greater than</span></span><br><span class="line"><span class="comment">     * OBJ_ENCODING_EMBSTR_SIZE_LIMIT. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 无法进行编码优化，但若空间浪费过多(有1/10的空间未使用)，则释放未使用的内存空间</span></span><br><span class="line">    <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_RAW &amp;&amp;</span><br><span class="line">        sdsavail(s) &gt; len/<span class="number">10</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        o-&gt;ptr = sdsRemoveFreeSpace(o-&gt;ptr);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Return the original object. */</span></span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>SET命令底层实现</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">setGenericCommand</span><span class="params">(client *c, <span class="keyword">int</span> flags, robj *key, robj *val, robj *expire, <span class="keyword">int</span> unit, robj *ok_reply, robj *abort_reply)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> milliseconds = <span class="number">0</span>; <span class="comment">/* initialized to avoid any harmness warning */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 若存在过期时间对象, 则取出过期时间</span></span><br><span class="line">    <span class="keyword">if</span> (expire) &#123;</span><br><span class="line">        <span class="comment">// 从exprie对象中获取long long类型的过期时间</span></span><br><span class="line">        <span class="keyword">if</span> (getLongLongFromObjectOrReply(c, expire, &amp;milliseconds, <span class="literal">NULL</span>) != C_OK)</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        <span class="keyword">if</span> (milliseconds &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">            addReplyErrorFormat(c,<span class="string">"invalid expire time in %s"</span>,c-&gt;cmd-&gt;name);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// redis实际以毫秒形式保存过期时间</span></span><br><span class="line">        <span class="comment">// 若输入时间为秒，则转换为毫秒</span></span><br><span class="line">        <span class="keyword">if</span> (unit == UNIT_SECONDS) milliseconds *= <span class="number">1000</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// NX：表示key不存在</span></span><br><span class="line">    <span class="comment">// XX：表示key存在</span></span><br><span class="line">    <span class="comment">// 若使用NX，但找到给key；若使用XX，但未找到该key</span></span><br><span class="line">    <span class="comment">// 回复错误给客户端</span></span><br><span class="line">    <span class="keyword">if</span> ((flags &amp; OBJ_SET_NX &amp;&amp; lookupKeyWrite(c-&gt;db,key) != <span class="literal">NULL</span>) ||</span><br><span class="line">        (flags &amp; OBJ_SET_XX &amp;&amp; lookupKeyWrite(c-&gt;db,key) == <span class="literal">NULL</span>))</span><br><span class="line">    &#123;</span><br><span class="line">        addReply(c, abort_reply ? abort_reply : shared.nullbulk);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 添加键值对到当前db</span></span><br><span class="line">    setKey(c-&gt;db,key,val);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置数据库为脏(dirty)，每次修改key后，都会dirty++</span></span><br><span class="line">    server.dirty++;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置key的过期时间</span></span><br><span class="line">    <span class="keyword">if</span> (expire) setExpire(c,c-&gt;db,key,mstime()+milliseconds);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 发送"set"事件通知，用于发布订阅模式，通知客户端接收消息</span></span><br><span class="line">    notifyKeyspaceEvent(NOTIFY_STRING,<span class="string">"set"</span>,key,c-&gt;db-&gt;id);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 发送"expire"事件通知</span></span><br><span class="line">    <span class="keyword">if</span> (expire) notifyKeyspaceEvent(NOTIFY_GENERIC,</span><br><span class="line">        <span class="string">"expire"</span>,key,c-&gt;db-&gt;id);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 回复客户端</span></span><br><span class="line">    addReply(c, ok_reply ? ok_reply : shared.ok);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>INCR和DECR底层实现</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">incrDecrCommand</span><span class="params">(client *c, <span class="keyword">long</span> <span class="keyword">long</span> incr)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> value, oldvalue;</span><br><span class="line">    robj *o, *<span class="keyword">new</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 寻址key对象</span></span><br><span class="line">    o = lookupKeyWrite(c-&gt;db,c-&gt;argv[<span class="number">1</span>]);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 若未找到或不是字符串对象则返回</span></span><br><span class="line">    <span class="keyword">if</span> (o != <span class="literal">NULL</span> &amp;&amp; checkType(c,o,OBJ_STRING)) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 取出对象的整数值，保存在value中</span></span><br><span class="line">    <span class="keyword">if</span> (getLongLongFromObjectOrReply(c,o,&amp;value,<span class="literal">NULL</span>) != C_OK) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 判断是否有溢出发生</span></span><br><span class="line">    oldvalue = value;</span><br><span class="line">    <span class="keyword">if</span> ((incr &lt; <span class="number">0</span> &amp;&amp; oldvalue &lt; <span class="number">0</span> &amp;&amp; incr &lt; (LLONG_MIN-oldvalue)) ||</span><br><span class="line">        (incr &gt; <span class="number">0</span> &amp;&amp; oldvalue &gt; <span class="number">0</span> &amp;&amp; incr &gt; (LLONG_MAX-oldvalue))) &#123;</span><br><span class="line">        addReplyError(c,<span class="string">"increment or decrement would overflow"</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 计算新值</span></span><br><span class="line">    value += incr;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 对象未共享，且超过共享整数编码范围或用long可以表示, 直接存储</span></span><br><span class="line">    <span class="keyword">if</span> (o &amp;&amp; o-&gt;refcount == <span class="number">1</span> &amp;&amp; o-&gt;encoding == OBJ_ENCODING_INT &amp;&amp;</span><br><span class="line">        (value &lt; <span class="number">0</span> || value &gt;= OBJ_SHARED_INTEGERS) &amp;&amp;</span><br><span class="line">        value &gt;= LONG_MIN &amp;&amp; value &lt;= LONG_MAX)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">new</span> = o;</span><br><span class="line">        o-&gt;ptr = (<span class="keyword">void</span>*)((<span class="keyword">long</span>)value);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 新建字符串对象</span></span><br><span class="line">        <span class="keyword">new</span> = createStringObjectFromLongLong(value);</span><br><span class="line">        <span class="keyword">if</span> (o) &#123;</span><br><span class="line">            dbOverwrite(c-&gt;db,c-&gt;argv[<span class="number">1</span>],<span class="keyword">new</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            dbAdd(c-&gt;db,c-&gt;argv[<span class="number">1</span>],<span class="keyword">new</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 向数据库发送键被修改的信号</span></span><br><span class="line">    signalModifiedKey(c-&gt;db,c-&gt;argv[<span class="number">1</span>]);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 发送"incrby"事件通知</span></span><br><span class="line">    notifyKeyspaceEvent(NOTIFY_STRING,<span class="string">"incrby"</span>,c-&gt;argv[<span class="number">1</span>],c-&gt;db-&gt;id);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 服务器为脏</span></span><br><span class="line">    server.dirty++;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 回复客户端</span></span><br><span class="line">    addReply(c,shared.colon);</span><br><span class="line">    addReply(c,<span class="keyword">new</span>);</span><br><span class="line">    addReply(c,shared.crlf);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/15/redis/9_对象系统/" rel="next" title="Redis源码阅读(九) 对象系统">
+                <i class="fa fa-chevron-left"></i> Redis源码阅读(九) 对象系统
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/21/redis/11_列表对象/" rel="prev" title="Redis源码阅读(十一) 列表对象">
+                Redis源码阅读(十一) 列表对象 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-编码"><span class="nav-number">1.</span> <span class="nav-text">1. 编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-命令"><span class="nav-number">2.</span> <span class="nav-text">2. 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-源码剖析"><span class="nav-number">3.</span> <span class="nav-text">3. 源码剖析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

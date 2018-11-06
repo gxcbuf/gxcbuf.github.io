@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="Lab 1: Boot a PC实验分为三部分，第一部分重点介绍如何熟悉x86汇编语言，QEMUx86模拟器和PC引导程序；第二部分检查6.828内核的引导加载程序；第三部分研究6.828内核本身的初始内容。 JOS是mit为了教学操作系统而开发的精简版类UNIX系统，使用git clone https://pdos.csail.mit.edu/6.828/2018/jos.git lab来获取源">
+<meta property="og:type" content="article">
+<meta property="og:title" content="孰能生巧">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/09/26/course/6.828/Lab1.Booting a PC/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="Lab 1: Boot a PC实验分为三部分，第一部分重点介绍如何熟悉x86汇编语言，QEMUx86模拟器和PC引导程序；第二部分检查6.828内核的引导加载程序；第三部分研究6.828内核本身的初始内容。 JOS是mit为了教学操作系统而开发的精简版类UNIX系统，使用git clone https://pdos.csail.mit.edu/6.828/2018/jos.git lab来获取源">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-10-31T09:12:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="孰能生巧">
+<meta name="twitter:description" content="Lab 1: Boot a PC实验分为三部分，第一部分重点介绍如何熟悉x86汇编语言，QEMUx86模拟器和PC引导程序；第二部分检查6.828内核的引导加载程序；第三部分研究6.828内核本身的初始内容。 JOS是mit为了教学操作系统而开发的精简版类UNIX系统，使用git clone https://pdos.csail.mit.edu/6.828/2018/jos.git lab来获取源">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/09/26/course/6.828/Lab1.Booting a PC/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title> | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/09/26/course/6.828/Lab1.Booting a PC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-09-26 13:10:59" itemprop="dateCreated datePublished" datetime="2018-09-26T13:10:59+08:00">2018-09-26</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-10-31 17:12:00" itemprop="dateModified" datetime="2018-10-31T17:12:00+08:00">2018-10-31</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="Lab-1-Boot-a-PC"><a href="#Lab-1-Boot-a-PC" class="headerlink" title="Lab 1: Boot a PC"></a>Lab 1: Boot a PC</h1><p>实验分为三部分，第一部分重点介绍如何熟悉x86汇编语言，QEMUx86模拟器和PC引导程序；第二部分检查6.828内核的引导加载程序；第三部分研究6.828内核本身的初始内容。</p>
+<p>JOS是mit为了教学操作系统而开发的精简版类UNIX系统，使用<code>git clone https://pdos.csail.mit.edu/6.828/2018/jos.git lab</code>来获取源码。</p>
+<h2 id="I-·-PC-Bootstrap"><a href="#I-·-PC-Bootstrap" class="headerlink" title="I · PC Bootstrap"></a>I · PC Bootstrap</h2><p>该部分练习是用来介绍x86汇编语言和PC引导程序，开始使用QEMU/GDB调试。</p>
+<h3 id="1-PC的物理地址分配"><a href="#1-PC的物理地址分配" class="headerlink" title="1. PC的物理地址分配"></a>1. PC的物理地址分配</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">+------------------+  &lt;- 0xFFFFFFFF (4GB)</span><br><span class="line">|      32-bit      |</span><br><span class="line">|  memory mapped   |</span><br><span class="line">|     devices      |</span><br><span class="line">|                  |</span><br><span class="line">/\/\/\/\/\/\/\/\/\/\</span><br><span class="line"></span><br><span class="line">/\/\/\/\/\/\/\/\/\/\</span><br><span class="line">|                  |</span><br><span class="line">|      Unused      |</span><br><span class="line">|                  |</span><br><span class="line">+------------------+  &lt;- depends on amount of RAM</span><br><span class="line">|                  |</span><br><span class="line">|                  |</span><br><span class="line">| Extended Memory  |</span><br><span class="line">|                  |</span><br><span class="line">|                  |</span><br><span class="line">+------------------+  &lt;- 0x00100000 (1MB)</span><br><span class="line">|     BIOS ROM     |</span><br><span class="line">+------------------+  &lt;- 0x000F0000 (960KB)</span><br><span class="line">|  16-bit devices, |</span><br><span class="line">|  expansion ROMs  |</span><br><span class="line">+------------------+  &lt;- 0x000C0000 (768KB)</span><br><span class="line">|   VGA Display    |</span><br><span class="line">+------------------+  &lt;- 0x000A0000 (640KB)</span><br><span class="line">|                  |</span><br><span class="line">|    Low Memory    |</span><br><span class="line">|                  |</span><br><span class="line">+------------------+  &lt;- 0x00000000</span><br></pre></td></tr></table></figure>
+<p>早期16位8088处理器PC只能处理1MB的物理内存，所以地址空间为0x00000000~0x000FFFFF。而Low Memory区域的640KB是早期PC可以使用的唯一随机存储器RAM。实际上，最早的PC只能配置16KB, 32KB或64KB的RAM.</p>
+<p>从0x000A0000到0x000FFFFF的384KB的区域由硬件保留用于特殊用途，如视频显示缓冲区和非易失性存储器中保存的固件。该保留区内最重要的就是基本输入/输出系统（BIOS），它占用0x000F0000到0x000FFFFF的64KB区域。早期PC中，BIOS保存在真正的ROM中，但当前的PC将BIOS存储在可更新的闪存中。BIOS负责基本系统初始化，如激活显卡和检查内存。执行完初始化后，BIOS从某些位置(软盘、硬盘、CD-ROM或网络)加载操作系统，并将机器的控制权限交给操作系统。</p>
+<blockquote>
+<p>当Intel设计突破1MB限制的处理器时，PC架构师仍然保留了原有低1MB物理地址空间布局，以向后兼容。</p>
+<p>PC的32位物理地址顶部一些空间，通常由BIOS保留，供32位PCI设备使用。</p>
+</blockquote>
+<h3 id="2-ROM-BIOS"><a href="#2-ROM-BIOS" class="headerlink" title="2. ROM BIOS"></a>2. ROM BIOS</h3><p>该部分实验将使用QEMU的调试工具来研究IA-32兼容计算机的启动方式。</p>
+<p>打开两个终端，第一个输入make qemu-gdb，启动QEMU但会停止在第一条命令之前，并等待来自GDB的调试链接。第二个终端中输入make gdb，则有一下显示</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">gdb -n -x .gdbinit</span><br><span class="line">GNU gdb (Ubuntu 7.11.1-0ubuntu1~16.5) 7.11.1</span><br><span class="line">....</span><br><span class="line"></span><br><span class="line">The target architecture is assumed to be i8086</span><br><span class="line">[f000:fff0]    0xffff0:	ljmp   $0xf000,$0xe05b</span><br><span class="line">0x0000fff0 in ?? ()</span><br><span class="line">+ symbol-file obj/kern/kernel</span><br><span class="line">(gdb)</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>源码中提供了.gdbinit文件，该文件设置GDB以调试早期启动间使用的16位代码，并将其指向到监听QEMU</p>
+</blockquote>
+<p><code>[f000：fff0] 0xffff0:    ljmp   $0xf000,$0xe05b</code></p>
+<p>该条命令是GDB要执行的第一条命令的反汇编，我们可以得出以下结论：</p>
+<ul>
+<li>IBM PC在物理地址<code>0x000ffff0</code>处开始执行，该地址位于ROM BIOS保留的64KB的最顶端。</li>
+<li>PC开始执行 <code>CS: 0xf000 IP: 0xfff0</code>  </li>
+<li>执行的第一条指令为<code>ljmp</code>，跳转到<code>CS: 0xf000, IP:0xe05b</code>处</li>
+</ul>
+<blockquote>
+<p>由于PC中的BIOS与物理地址范围0x000f0000-0x000fffff存在”硬连线”，因此可确保BIOS在启动后最先被加载</p>
+</blockquote>
+<p>当BIOS运行时，会设置一个中断描述符表并初始化各种设备，如VGA显示器，当初始化PCI总线和一些重要设备之后，BIOS会搜索可引导设备，如floppy、hard drive、CD-ROM，最终找到可引导盘，BIOS会从磁盘读取boot loader并把控制权交给它。</p>
+<h3 id="3-引导加载程序-boot-loader"><a href="#3-引导加载程序-boot-loader" class="headerlink" title="3. 引导加载程序 boot loader"></a>3. 引导加载程序 boot loader</h3><p>PC的软盘和硬盘被分为512字节的区域，称之为扇区，扇区是磁盘的最小传输粒度：每个读写操作都必须是一个或多个扇区，并在扇区边界上对齐。如果磁盘是可引导的，那么第一个扇区称之为<strong>引导扇区</strong>，该位置存放了引导加载程序的代码。</p>
+<p>当BIOS找到可引导磁盘后，将512字节的引导扇区加载到物理地址<code>0x7c00~0x7dff</code>的内存中，然后使用<code>jmp</code>指令将<code>cs:ip</code>设置为<code>0000:7c00</code>，将控制权交给引导程序。</p>
+<blockquote>
+<p>PC发展过程中，从CD-ROM启动要晚很多，所以PC架构师重新规划了启动过程，现代BIOS从CD-ROM启动的引导扇区是2048字节。</p>
+</blockquote>
+<p>JOS中引导加载程序有boot/boot.S和boot/main.c组成，它们必须完成以下任务：</p>
+<ul>
+<li>将处理器从实模式切换到32位保护模式，因为只有在保护模式下，才能访问物理地址空间1MB以上的区域。</li>
+<li>通过x86的特殊I/O指令直接访问IDE磁盘设备寄存器，从硬盘读取内核。</li>
+</ul>
+<h4 id="3-1-汇编部分boot-S"><a href="#3-1-汇编部分boot-S" class="headerlink" title="3.1 汇编部分boot.S"></a>3.1 汇编部分boot.S</h4><p>引导加载程序的第一条指令是<code>cli</code>屏蔽处理器中断，BIOS是一个小型操作系统，它拥有自己的中断处理程序，但现在已经将控制权交给了引导程序，所以需要进行中断屏蔽，以防BIOS触发中断防止引导加载程序的运行，当准备好后，会重新开启中断。</p>
+<p>早期PC中，地址总线20位，寄存器16位，为了进行20位寻址，则通过<code>段选择子:偏移(segment:offset)</code>的方式进行，即<code>segment * 16 + offset</code>得到20位地址，该地址被称之为<strong>逻辑地址</strong>，在一般情况下分段硬件会处理该情况的到一个线性地址，如果开启的分页功能，那么会将线性地址翻译为物理地址，否则处理器直接将线性地址当作物理地址使用。</p>
+<blockquote>
+<p>虚拟地址<code>segment:offset</code>的方式可能产生21位地址，但8088只能传递20位地址，所以它截断了地址的最高位。早期软件忽略21位来解决该问题，但当CPU寻址超过20位时候就出现了问题，所以IBM给出了一个方案：如果键盘控制器输出端口第2位是低位，则物理地址第21位被清零，否则可正常使用。</p>
+<p>0x60是键盘控制器命令端口，0x64是键盘控制器数据端口。</p>
+</blockquote>
+<p>随着技术的发展，内存大小很快就超过65535字节，这时候实模式的20位寻址就过于窘迫，x86处理器在80286之后就有了<strong>保护模式</strong>，保护模式下寻址到达32位，可以寻址4G的内存范围。</p>
+<p>在保护模式下，段寄存器保存着段描述符表的索引，段描述符表中每一个表项都指定一个基物理地址，最大虚拟地址（限制），和该段的权限位，在保护模式下权限位起到保护作用，内核可以根据它们来保证一个程序只使用属于自己的地址空间。</p>
+<p>引导加载程序将段描述符表gdt中的每个段基址置零，让所有段具有相同的内存限制4G。我们gdt有3个表项，一个空指针表项、一个可执行代码表项、一个数据表项，代码表项中的标志位表明代码只能在32位模式下运行。</p>
+<p>引导加载程序执行<code>lgdt gdtdesc</code>将全局描述符表加载到寄存器，加载完成后将<code>CR0_PE</code>置1从而开启保护模式。允许保护模式不会马上让CPU把逻辑地址翻译为物理地址，只有当某个段寄存器加载了一个新值，并且CPU通过这个值读取到GDT的一项从而改变了内部的段设置。</p>
+<p>32位模式下，引导加载程序使用<code>PROT_MODE_DSEG</code>数据段选择子初始化数据段寄存器，逻辑地址直接映射到物理地址。运行C代码前建立一个栈空间，内存<code>0xa0000 ~ 0x100000</code>属于设备区，内核则位于<code>0x100000</code>处，引导加载程序自己位于<code>0x7c00 ~ 0x7d00</code>，选择0x7c00作为栈顶，向下生长直到0x0000。</p>
+<p>最后引导加载程序调用C函数bootmain，其工作为加载并运行内核。</p>
+<h4 id="3-2-C代码部分main-c"><a href="#3-2-C代码部分main-c" class="headerlink" title="3.2 C代码部分main.c"></a>3.2 C代码部分main.c</h4><p>bootmain的目的是在磁盘的第二个扇区开头找到内核程序，内核是ELF格式的二进制文件。bootmain读取ELF文件的前4096字节(ELF头部长度)拷贝到内存0x10000处，并判断是否是合法ELF文件，然后读取内核的内容并加载到p_addr物理地址处，调用entry进入内核。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ELF文件由ELF头和数据部分(程序表头+段表头+数据域)组成</span><br><span class="line">- ELF头</span><br><span class="line">  - e_entry	开始执行入口地址</span><br><span class="line">  - e_phoff   程序表头开始地址</span><br><span class="line">  - e_shoff    段表头开始地址</span><br><span class="line">  - e_phentsize  程序表头表项大小</span><br><span class="line">  - e_phnum  程序表头表项数</span><br><span class="line">  - e_shentsize  段表头表项大小</span><br><span class="line">  - e_shnum  段表头表项数</span><br><span class="line">- 数据部分</span><br><span class="line">  - program header table程序表头</span><br><span class="line">    p_offset  段中偏移量</span><br><span class="line">    p_vaddr  内存中段的虚拟地址</span><br><span class="line">    P_paddr  物理地址</span><br><span class="line">    p_filesz   image文件中段大小</span><br><span class="line">    p_memsz  内存中段大小</span><br><span class="line">  - section header table 段表头</span><br><span class="line">  - data <span class="keyword">for</span> ph <span class="keyword">and</span> sh 数据域</span><br></pre></td></tr></table></figure>
+<h3 id="4-内核"><a href="#4-内核" class="headerlink" title="4. 内核"></a>4. 内核</h3>
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/09/25/course/6.828/A.实验准备/" rel="next" title="">
+                <i class="fa fa-chevron-left"></i> 
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/10/09/redis/21_复制/" rel="prev" title="Redis源码阅读(二十一) 复制">
+                Redis源码阅读(二十一) 复制 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Lab-1-Boot-a-PC"><span class="nav-number">1.</span> <span class="nav-text">Lab 1: Boot a PC</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#I-·-PC-Bootstrap"><span class="nav-number">1.1.</span> <span class="nav-text">I · PC Bootstrap</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-PC的物理地址分配"><span class="nav-number">1.1.1.</span> <span class="nav-text">1. PC的物理地址分配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-ROM-BIOS"><span class="nav-number">1.1.2.</span> <span class="nav-text">2. ROM BIOS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-引导加载程序-boot-loader"><span class="nav-number">1.1.3.</span> <span class="nav-text">3. 引导加载程序 boot loader</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-汇编部分boot-S"><span class="nav-number">1.1.3.1.</span> <span class="nav-text">3.1 汇编部分boot.S</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-C代码部分main-c"><span class="nav-number">1.1.3.2.</span> <span class="nav-text">3.2 C代码部分main.c</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-内核"><span class="nav-number">1.1.4.</span> <span class="nav-text">4. 内核</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

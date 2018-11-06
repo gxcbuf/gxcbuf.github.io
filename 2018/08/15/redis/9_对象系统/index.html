@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="Redis定义了一些基本了数据类型，如简单动态字符串、字典、跳跃表、压缩列表等等，但并未使用这些结构作为对象存储，而是定义了一套对象系统，底层使用这些数据结构进行存储，这个对象系统包括了字符串对象、列表对象、哈希对象、集合对象、有序集合对象，Redis针对不同的使用场景，设置不同的数据结构，优化其使用效率。 Redis通过对象引用计数进行内存的自动回收，并通过引用计数实现对象共享机制，Redis对">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码阅读(九) 对象系统">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/08/15/redis/9_对象系统/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="Redis定义了一些基本了数据类型，如简单动态字符串、字典、跳跃表、压缩列表等等，但并未使用这些结构作为对象存储，而是定义了一套对象系统，底层使用这些数据结构进行存储，这个对象系统包括了字符串对象、列表对象、哈希对象、集合对象、有序集合对象，Redis针对不同的使用场景，设置不同的数据结构，优化其使用效率。 Redis通过对象引用计数进行内存的自动回收，并通过引用计数实现对象共享机制，Redis对">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-08-27T10:26:32.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis源码阅读(九) 对象系统">
+<meta name="twitter:description" content="Redis定义了一些基本了数据类型，如简单动态字符串、字典、跳跃表、压缩列表等等，但并未使用这些结构作为对象存储，而是定义了一套对象系统，底层使用这些数据结构进行存储，这个对象系统包括了字符串对象、列表对象、哈希对象、集合对象、有序集合对象，Redis针对不同的使用场景，设置不同的数据结构，优化其使用效率。 Redis通过对象引用计数进行内存的自动回收，并通过引用计数实现对象共享机制，Redis对">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/08/15/redis/9_对象系统/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis源码阅读(九) 对象系统 | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/08/15/redis/9_对象系统/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis源码阅读(九) 对象系统
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-08-15 17:25:58" itemprop="dateCreated datePublished" datetime="2018-08-15T17:25:58+08:00">2018-08-15</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-08-27 18:26:32" itemprop="dateModified" datetime="2018-08-27T18:26:32+08:00">2018-08-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/源码阅读/" itemprop="url" rel="index"><span itemprop="name">源码阅读</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Redis定义了一些基本了数据类型，如简单动态字符串、字典、跳跃表、压缩列表等等，但并未使用这些结构作为对象存储，而是定义了一套对象系统，底层使用这些数据结构进行存储，这个对象系统包括了字符串对象、列表对象、哈希对象、集合对象、有序集合对象，Redis针对不同的使用场景，设置不同的数据结构，优化其使用效率。</p>
+<p>Redis通过对象引用计数进行内存的自动回收，并通过引用计数实现对象共享机制，Redis对象还保存了最近一次访问的时间(或历史访问频率)，通过LRU(LFU)算法对其进行优化。</p>
+<h3 id="1-redis对象定义"><a href="#1-redis对象定义" class="headerlink" title="1. redis对象定义"></a>1. redis对象定义</h3><ul>
+<li>redis对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisObject</span> &#123;</span>                                                                            </span><br><span class="line">    <span class="comment">// 4bit，表示对象类型, OBJ_STRING ...                                                              </span></span><br><span class="line">    <span class="keyword">unsigned</span> type:<span class="number">4</span>;                                                                                    </span><br><span class="line">    <span class="comment">// 4bit，表示编码类型, OBJ_ENCODING_RAE ...                                                        </span></span><br><span class="line">    <span class="keyword">unsigned</span> encoding:<span class="number">4</span>;                                                                                </span><br><span class="line">    <span class="comment">// LRU最后一次被访问的时间; LFU历史访问频次                                                                            </span></span><br><span class="line">    <span class="keyword">unsigned</span> lru:LRU_BITS; <span class="comment">/* LRU time (relative to global lru_clock) or                                </span></span><br><span class="line"><span class="comment">                            * LFU data (least significant 8 bits frequency                              </span></span><br><span class="line"><span class="comment">                            * and most significant 16 bits access time). */</span>                             </span><br><span class="line">    <span class="comment">// 对象引用计数                                                                                     </span></span><br><span class="line">    <span class="keyword">int</span> refcount;                                                                                       </span><br><span class="line">    <span class="comment">// 实际存储地址                                                                                     </span></span><br><span class="line">    <span class="keyword">void</span> *ptr;                                                                                          </span><br><span class="line">&#125; robj;</span><br></pre></td></tr></table></figure>
+<h3 id="2-对象类型"><a href="#2-对象类型" class="headerlink" title="2. 对象类型"></a>2. 对象类型</h3><p>redis对象使用type(4bit)字段表示该对象的类型，Redis数据库中键总是一个字符串对象，而值可以是字符串对象、列表对象、哈希对象、集合对象、有序集合对象和模块对象。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">常量</th>
+<th style="text-align:center">对象</th>
+<th style="text-align:center">TYPE命令输出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">OBJ_STRING 0</td>
+<td style="text-align:center">字符串对象</td>
+<td style="text-align:center">“string”</td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_LIST 1</td>
+<td style="text-align:center">列表对象</td>
+<td style="text-align:center">“list”</td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_SET 2</td>
+<td style="text-align:center">集合对象</td>
+<td style="text-align:center">“set”</td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ZSET 3</td>
+<td style="text-align:center">有序集合对象</td>
+<td style="text-align:center">“zset”</td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_HASH 4</td>
+<td style="text-align:center">哈希对象</td>
+<td style="text-align:center">“hash”</td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_MODULE 5</td>
+<td style="text-align:center">模块对象（特殊的类型）</td>
+<td style="text-align:center">模块名称</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-对象编码"><a href="#3-对象编码" class="headerlink" title="3. 对象编码"></a>3. 对象编码</h3><p>redis对象的ptr属性指向底层的数据结构，这些数据结构由encoding属性决定。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">常量</th>
+<th style="text-align:center">底层数据结构</th>
+<th style="text-align:center">encoding 命令输出</th>
+<th style="text-align:center">备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_RAW 0</td>
+<td style="text-align:center">简单动态字符串</td>
+<td style="text-align:center">“raw”</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_INT 1</td>
+<td style="text-align:center">long类型的整数</td>
+<td style="text-align:center">“int”</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_HT 2</td>
+<td style="text-align:center">字典</td>
+<td style="text-align:center">“hashtable”</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_ZIPMAP 3</td>
+<td style="text-align:center">压缩字典</td>
+<td style="text-align:center">—</td>
+<td style="text-align:center">不会单独使用</td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_LINKEDLIST 4</td>
+<td style="text-align:center">双端链表</td>
+<td style="text-align:center">—</td>
+<td style="text-align:center">不再用于列表对象</td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_ZIPLIST 5</td>
+<td style="text-align:center">压缩列表</td>
+<td style="text-align:center">“ziplist”</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_INTSET 6</td>
+<td style="text-align:center">整数集合</td>
+<td style="text-align:center">“intset”</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_SKIPLIST 7</td>
+<td style="text-align:center">跳跃表</td>
+<td style="text-align:center">“skiplist”</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_EMBSTR 8</td>
+<td style="text-align:center">embstr类型sds</td>
+<td style="text-align:center">“embstr”</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">OBJ_ENCODING_QUICKLIST 9</td>
+<td style="text-align:center">快速列表</td>
+<td style="text-align:center">“quicklist”</td>
+</tr>
+</tbody>
+</table>
+<p>每种对象都存在不同的编码方式。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">对象类型</th>
+<th style="text-align:center">编码类型</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">STRING</td>
+<td style="text-align:center">INT</td>
+<td style="text-align:center">使用数值存储</td>
+</tr>
+<tr>
+<td style="text-align:center">STRING</td>
+<td style="text-align:center">EMBSTR</td>
+<td style="text-align:center">不被修改的字符串，并且不能超过44字节</td>
+</tr>
+<tr>
+<td style="text-align:center">STRING</td>
+<td style="text-align:center">RAW</td>
+<td style="text-align:center">超过44字节的一般字符串</td>
+</tr>
+<tr>
+<td style="text-align:center">LIST</td>
+<td style="text-align:center">QUICKLIST</td>
+<td style="text-align:center">列表对象的编码仅使用QUICKLIST</td>
+</tr>
+<tr>
+<td style="text-align:center">HASH</td>
+<td style="text-align:center">HT</td>
+<td style="text-align:center">字典编码的哈希对象</td>
+</tr>
+<tr>
+<td style="text-align:center">HASH</td>
+<td style="text-align:center">ZIPLIST</td>
+<td style="text-align:center">压缩列表编码的哈希对象</td>
+</tr>
+<tr>
+<td style="text-align:center">SET</td>
+<td style="text-align:center">HT</td>
+<td style="text-align:center">字典编码的集合对象</td>
+</tr>
+<tr>
+<td style="text-align:center">SET</td>
+<td style="text-align:center">INTSET</td>
+<td style="text-align:center">整数集合编码的集合对象</td>
+</tr>
+<tr>
+<td style="text-align:center">ZSET</td>
+<td style="text-align:center">QUICKLIST</td>
+<td style="text-align:center">跳跃表编码有序集合对象</td>
+</tr>
+<tr>
+<td style="text-align:center">ZSET</td>
+<td style="text-align:center">ZIPLIST</td>
+<td style="text-align:center">压缩列表编码有序集合对象</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-内存优化"><a href="#4-内存优化" class="headerlink" title="4. 内存优化"></a>4. 内存优化</h3><h4 id="4-1-引用计数"><a href="#4-1-引用计数" class="headerlink" title="4.1 引用计数"></a>4.1 引用计数</h4><p>C语言没有垃圾回收机制(GC)，所以Redis自己实现了基于引用计数的内存回收，通过跟踪引用计数，在适当的时候释放内存空间，优化性能。</p>
+<p>对象的引用计数会随对象的使用而发生改变</p>
+<ul>
+<li>创建新对象时，引用计数+1</li>
+<li>对象被使用时，引用计数+1</li>
+<li>对象不在被使用时，引用计数-1</li>
+<li>引用计数减为0时，释放占用内存空间</li>
+<li>[0, 10000)范围的整数引用计数设为INT_MAX，用做整数共享</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">函数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">incrRefCount</td>
+<td>对象引用计数+1</td>
+</tr>
+<tr>
+<td style="text-align:left">decrRefCount</td>
+<td>对象引用计数-1，当计数为0时，根据其编码释放底层内存空间</td>
+</tr>
+<tr>
+<td style="text-align:left">resetRefCount</td>
+<td>对象引用计数设置为0，但不释放内存，通常用在 创建对象后调用会增加引用计数的函</td>
+</tr>
+</tbody>
+</table>
+<h4 id="4-2-对象共享"><a href="#4-2-对象共享" class="headerlink" title="4.2 对象共享"></a>4.2 对象共享</h4><p>Redis通过引用计数实现了对象共享的机制，如[0, 10000)范围的数字就是共享整数，若redis中的值在此范围内，则会通过指针指向这些整数。</p>
+<blockquote>
+<p>当服务器将共享对象设置为值的时候，需要检查共享对象和目标对象是否完全相同，只有完全相同才会进行共享，检查对象完全相同的代价取决于对象的复杂程度，基础类型耗时很少，但越复杂的对象则需要越大的代价，尽管可以节省内存，但CPU耗时会增加，所以Redis目前只共享整数</p>
+</blockquote>
+<h4 id="4-3-命令"><a href="#4-3-命令" class="headerlink" title="4.3 命令"></a>4.3 命令</h4><p>Redis使用了LRU和LFU算法记录对象被访问的情况，默认开启LRU算法，LFU算法需通过配置文件开启。</p>
+<p>使用OBJECT命令可以获取对象内存有关的信息。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 获取对象的信息</span></span><br><span class="line">-OBJECT [refcount|encoding|idletime|freq] key</span><br><span class="line">	- refcount：获取对象的引用计数</span><br><span class="line">	- encoding：获取对象的编码类型</span><br><span class="line">	- idletime：获取对象已经存在的时间，LFU算法下不可使用</span><br><span class="line">	- freq：获取对象被访问的频次，LFU算法下可用</span><br></pre></td></tr></table></figure>
+<p>使用TYPE命令可以获取对象的类型</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 获取key对象的类型，string, list, set, zset, hash</span></span><br><span class="line">-TYPE key</span><br></pre></td></tr></table></figure>
+<h3 id="5-源码剖析"><a href="#5-源码剖析" class="headerlink" title="5. 源码剖析"></a>5. 源码剖析</h3><ul>
+<li>减少对象引用计数，当引用计数为0时释放该对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">decrRefCount</span><span class="params">(robj *o)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (o-&gt;refcount == <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">switch</span>(o-&gt;type) &#123;</span><br><span class="line">        <span class="keyword">case</span> OBJ_STRING: freeStringObject(o); <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> OBJ_LIST: freeListObject(o); <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> OBJ_SET: freeSetObject(o); <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> OBJ_ZSET: freeZsetObject(o); <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> OBJ_HASH: freeHashObject(o); <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> OBJ_MODULE: freeModuleObject(o); <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>: serverPanic(<span class="string">"Unknown object type"</span>); <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        zfree(o);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (o-&gt;refcount &lt;= <span class="number">0</span>) serverPanic(<span class="string">"decrRefCount against refcount &lt;= 0"</span>);</span><br><span class="line">        <span class="keyword">if</span> (o-&gt;refcount != OBJ_SHARED_REFCOUNT) o-&gt;refcount--;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>创建一个redis对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">createObject</span><span class="params">(<span class="keyword">int</span> type, <span class="keyword">void</span> *ptr)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 分配内存空间</span></span><br><span class="line">    robj *o = zmalloc(<span class="keyword">sizeof</span>(*o));</span><br><span class="line">    <span class="comment">// 对象类型</span></span><br><span class="line">    o-&gt;type = type;</span><br><span class="line">    <span class="comment">// 对象编码</span></span><br><span class="line">    o-&gt;encoding = OBJ_ENCODING_RAW;</span><br><span class="line">    <span class="comment">// 对象实际存储指针</span></span><br><span class="line">    o-&gt;ptr = ptr;</span><br><span class="line">    <span class="comment">// 对象引用计数</span></span><br><span class="line">    o-&gt;refcount = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Set the LRU to the current lruclock (minutes resolution), or</span></span><br><span class="line"><span class="comment">     * alternatively the LFU counter. */</span></span><br><span class="line">    <span class="comment">// 使用LRU或者LFU算法,用于内存淘汰</span></span><br><span class="line">    <span class="keyword">if</span> (server.maxmemory_policy &amp; MAXMEMORY_FLAG_LFU) &#123;</span><br><span class="line">        o-&gt;lru = (LFUGetTimeInMinutes()&lt;&lt;<span class="number">8</span>) | LFU_INIT_VAL;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        o-&gt;lru = LRU_CLOCK();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>创建一个quicklist列表对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">createQuicklistObject</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 创建新的quicklist</span></span><br><span class="line">    quicklist *l = quicklistCreate();</span><br><span class="line">    <span class="comment">// 创建列表对象</span></span><br><span class="line">    robj *o = createObject(OBJ_LIST,l);</span><br><span class="line">    <span class="comment">// 编码方式QUICKLIST</span></span><br><span class="line">    o-&gt;encoding = OBJ_ENCODING_QUICKLIST;</span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>创建一个dict集合对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">createSetObject</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 创建一个字典</span></span><br><span class="line">    dict *d = dictCreate(&amp;setDictType,<span class="literal">NULL</span>);</span><br><span class="line">    <span class="comment">// 创建集合对象</span></span><br><span class="line">    robj *o = createObject(OBJ_SET,d);</span><br><span class="line">    <span class="comment">// 编码方式OBJ_ENCODING_HT</span></span><br><span class="line">    o-&gt;encoding = OBJ_ENCODING_HT;</span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>创建一个intset集合对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">createIntsetObject</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123; <span class="comment">// 创建一个整数结合</span></span><br><span class="line">    <span class="comment">// 创建整数集合</span></span><br><span class="line">    intset *is = intsetNew();</span><br><span class="line">    <span class="comment">// 创建集合对象</span></span><br><span class="line">    robj *o = createObject(OBJ_SET,is);</span><br><span class="line">    <span class="comment">// 编码方式OBJ_ENCODING_INTSET</span></span><br><span class="line">    o-&gt;encoding = OBJ_ENCODING_INTSET;</span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>创建一个ziplist哈希对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">createHashObject</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 创建ziplist</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl = ziplistNew();</span><br><span class="line">    <span class="comment">// 创建哈希对象</span></span><br><span class="line">    robj *o = createObject(OBJ_HASH, zl);</span><br><span class="line">    <span class="comment">// 编码方式 OBJ_ENCODING_ZIPLIST</span></span><br><span class="line">    o-&gt;encoding = OBJ_ENCODING_ZIPLIST;</span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>创建一个skiplist有序集合对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">createZsetObject</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 分配内存空间</span></span><br><span class="line">    zset *zs = zmalloc(<span class="keyword">sizeof</span>(*zs));</span><br><span class="line">    robj *o;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建哈希表</span></span><br><span class="line">    zs-&gt;dict = dictCreate(&amp;zsetDictType,<span class="literal">NULL</span>);</span><br><span class="line">    <span class="comment">// 创建跳跃表</span></span><br><span class="line">    zs-&gt;zsl = zslCreate();</span><br><span class="line">    <span class="comment">// 创建有序集合对象</span></span><br><span class="line">    o = createObject(OBJ_ZSET,zs);</span><br><span class="line">    <span class="comment">// 编码方式 OBJ_ENCODING_SKIPLIST</span></span><br><span class="line">    o-&gt;encoding = OBJ_ENCODING_SKIPLIST;</span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>创建一个ziplist有序集合对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">createZsetZiplistObject</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 创建ziplist</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl = ziplistNew();</span><br><span class="line">    <span class="comment">// 创建有序集合对象</span></span><br><span class="line">    robj *o = createObject(OBJ_ZSET,zl);</span><br><span class="line">    <span class="comment">// 编码方式OBJ_ENCODING_ZIPLIST</span></span><br><span class="line">    o-&gt;encoding = OBJ_ENCODING_ZIPLIST;</span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/14/redis/8_快速列表/" rel="next" title="Redis源码阅读(八) 快速列表">
+                <i class="fa fa-chevron-left"></i> Redis源码阅读(八) 快速列表
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/16/redis/10_字符串对象/" rel="prev" title="Redis源码阅读(十) 字符串对象">
+                Redis源码阅读(十) 字符串对象 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-redis对象定义"><span class="nav-number">1.</span> <span class="nav-text">1. redis对象定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-对象类型"><span class="nav-number">2.</span> <span class="nav-text">2. 对象类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-对象编码"><span class="nav-number">3.</span> <span class="nav-text">3. 对象编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-内存优化"><span class="nav-number">4.</span> <span class="nav-text">4. 内存优化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-引用计数"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 引用计数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-对象共享"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 对象共享</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-3-命令"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 命令</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-number">5.</span> <span class="nav-text">5. 源码剖析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

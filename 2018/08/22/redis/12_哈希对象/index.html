@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="Redis的哈希对象是一个string类型的field和value的映射表，特别适合用于存储对象，每个 hash 可以存储 2^32 - 1 键值对。 1. 编码Redis中哈希对象的编码有ZIPLIST和HT。 ziplist编码的哈希对象使用压缩列表作为底层实现，有新的键值对插入时，现将键插入的压缩列表尾部，再将值插入的压缩列表尾部，这样键值对总是紧密挨在一起的。 hashtable编码的哈希">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码阅读(十二) 哈希对象">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/08/22/redis/12_哈希对象/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="Redis的哈希对象是一个string类型的field和value的映射表，特别适合用于存储对象，每个 hash 可以存储 2^32 - 1 键值对。 1. 编码Redis中哈希对象的编码有ZIPLIST和HT。 ziplist编码的哈希对象使用压缩列表作为底层实现，有新的键值对插入时，现将键插入的压缩列表尾部，再将值插入的压缩列表尾部，这样键值对总是紧密挨在一起的。 hashtable编码的哈希">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-08-23T02:50:12.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis源码阅读(十二) 哈希对象">
+<meta name="twitter:description" content="Redis的哈希对象是一个string类型的field和value的映射表，特别适合用于存储对象，每个 hash 可以存储 2^32 - 1 键值对。 1. 编码Redis中哈希对象的编码有ZIPLIST和HT。 ziplist编码的哈希对象使用压缩列表作为底层实现，有新的键值对插入时，现将键插入的压缩列表尾部，再将值插入的压缩列表尾部，这样键值对总是紧密挨在一起的。 hashtable编码的哈希">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/08/22/redis/12_哈希对象/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis源码阅读(十二) 哈希对象 | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/08/22/redis/12_哈希对象/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis源码阅读(十二) 哈希对象
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-08-22 12:46:13" itemprop="dateCreated datePublished" datetime="2018-08-22T12:46:13+08:00">2018-08-22</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-08-23 10:50:12" itemprop="dateModified" datetime="2018-08-23T10:50:12+08:00">2018-08-23</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/源码阅读/" itemprop="url" rel="index"><span itemprop="name">源码阅读</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Redis的哈希对象是一个string类型的field和value的映射表，特别适合用于存储对象，每个 hash 可以存储 2^32 - 1 键值对。</p>
+<h3 id="1-编码"><a href="#1-编码" class="headerlink" title="1. 编码"></a>1. 编码</h3><p>Redis中哈希对象的编码有ZIPLIST和HT。</p>
+<p>ziplist编码的哈希对象使用压缩列表作为底层实现，有新的键值对插入时，现将键插入的压缩列表尾部，再将值插入的压缩列表尾部，这样键值对总是紧密挨在一起的。</p>
+<p>hashtable编码的哈希对象使用字典作为底层实现，每个键值对都用字典的键值对保存。</p>
+<h3 id="2-编码转换"><a href="#2-编码转换" class="headerlink" title="2. 编码转换"></a>2. 编码转换</h3><p>当哈希对象满足以下条件时，使用ZIPLIST编码：</p>
+<ol>
+<li>哈希对象保存的所有键值对的字符串长度小于64字节。</li>
+<li>哈希对象保存的键值对个数小于512</li>
+</ol>
+<blockquote>
+<p>这两个参数可以通过hash-max-ziplist-value和hash-max-ziplist-entries修改。</p>
+</blockquote>
+<p>当对ziplist编码的哈希对象进行一些操作致使无法使用ziplist编码是，则将哈希对象转换成HT编码，ziplist中保存的键值对会移动到新的字典中。</p>
+<blockquote>
+<p>目前仅实现了ZIPLIST ==&gt; HT的编码转换</p>
+</blockquote>
+<h3 id="3-命令"><a href="#3-命令" class="headerlink" title="3. 命令"></a>3. 命令</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HDEL</td>
+<td>删除一个或多个哈希表字段</td>
+</tr>
+<tr>
+<td>HEXISTS</td>
+<td>查看哈希表 key 中，指定的字段是否存在</td>
+</tr>
+<tr>
+<td>HGET</td>
+<td>获取存储在哈希表中指定字段的值</td>
+</tr>
+<tr>
+<td>HGETALL</td>
+<td>获取在哈希表中指定 key 的所有字段和值</td>
+</tr>
+<tr>
+<td>HINCRBY</td>
+<td>为哈希表 key 中的指定字段的整数值加上增量 increment</td>
+</tr>
+<tr>
+<td>HINCRBYFLOAT</td>
+<td>为哈希表 key 中的指定字段的浮点数值加上增量 increment</td>
+</tr>
+<tr>
+<td>HKEYS</td>
+<td>获取所有哈希表中的字段</td>
+</tr>
+<tr>
+<td>HLEN</td>
+<td>获取哈希表中字段的数量</td>
+</tr>
+<tr>
+<td>HMGET</td>
+<td>获取所有给定字段的值</td>
+</tr>
+<tr>
+<td>HMSET</td>
+<td>同时将多个 field-value (域-值)对设置到哈希表 key 中</td>
+</tr>
+<tr>
+<td>HSET</td>
+<td>将哈希表 key 中的字段 field 的值设为 value</td>
+</tr>
+<tr>
+<td>HSETNX</td>
+<td>只有在字段 field 不存在时，设置哈希表字段的值</td>
+</tr>
+<tr>
+<td>HSTRLEN</td>
+<td>获取哈希表字段值的长度</td>
+</tr>
+<tr>
+<td>HVALS</td>
+<td>获取哈希表中所有值</td>
+</tr>
+<tr>
+<td>HSCAN</td>
+<td>迭代哈希表中的键值对</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-源码剖析"><a href="#4-源码剖析" class="headerlink" title="4. 源码剖析"></a>4. 源码剖析</h3><ul>
+<li>哈希表中添加键值对</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashTypeSet</span><span class="params">(robj *o, sds field, sds value, <span class="keyword">int</span> flags)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> update = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 根据编码的不同进行处理</span></span><br><span class="line">    <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_ZIPLIST) &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, *fptr, *vptr;</span><br><span class="line"></span><br><span class="line">        zl = o-&gt;ptr;</span><br><span class="line">        <span class="comment">// 获取ziplist的头结点指针</span></span><br><span class="line">        fptr = ziplistIndex(zl, ZIPLIST_HEAD);</span><br><span class="line">        <span class="keyword">if</span> (fptr != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="comment">// 查找field的位置</span></span><br><span class="line">            fptr = ziplistFind(fptr, (<span class="keyword">unsigned</span> <span class="keyword">char</span>*)field, sdslen(field), <span class="number">1</span>);</span><br><span class="line">            <span class="keyword">if</span> (fptr != <span class="literal">NULL</span>) &#123;</span><br><span class="line">                <span class="comment">/* Grab pointer to the value (fptr points to the field) */</span></span><br><span class="line">                vptr = ziplistNext(zl, fptr);</span><br><span class="line">                serverAssert(vptr != <span class="literal">NULL</span>);</span><br><span class="line">                <span class="comment">// 找到该field</span></span><br><span class="line">                update = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">                <span class="comment">/* Delete value */</span></span><br><span class="line">                <span class="comment">// 删除ziplist中的field</span></span><br><span class="line">                zl = ziplistDelete(zl, &amp;vptr);</span><br><span class="line"></span><br><span class="line">                <span class="comment">/* Insert new value */</span></span><br><span class="line">                <span class="comment">// 插入新的值</span></span><br><span class="line">                zl = ziplistInsert(zl, vptr, (<span class="keyword">unsigned</span> <span class="keyword">char</span>*)value,</span><br><span class="line">                        sdslen(value));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 如果不是更新，则插入新的field和value到ziplist尾部</span></span><br><span class="line">        <span class="keyword">if</span> (!update) &#123;</span><br><span class="line">            <span class="comment">/* Push new field/value pair onto the tail of the ziplist */</span></span><br><span class="line">            zl = ziplistPush(zl, (<span class="keyword">unsigned</span> <span class="keyword">char</span>*)field, sdslen(field),</span><br><span class="line">                    ZIPLIST_TAIL);</span><br><span class="line">            zl = ziplistPush(zl, (<span class="keyword">unsigned</span> <span class="keyword">char</span>*)value, sdslen(value),</span><br><span class="line">                    ZIPLIST_TAIL);</span><br><span class="line">        &#125;</span><br><span class="line">        o-&gt;ptr = zl;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Check if the ziplist needs to be converted to a hash table */</span></span><br><span class="line">        <span class="comment">// 检查是否需要将ziplist转换为哈希表</span></span><br><span class="line">        <span class="keyword">if</span> (hashTypeLength(o) &gt; server.hash_max_ziplist_entries)</span><br><span class="line">            hashTypeConvert(o, OBJ_ENCODING_HT);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_HT) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 查找field结点</span></span><br><span class="line">        dictEntry *de = dictFind(o-&gt;ptr,field);</span><br><span class="line">        <span class="keyword">if</span> (de) &#123;</span><br><span class="line">            <span class="comment">// 找到则先释放之前的内容</span></span><br><span class="line">            sdsfree(dictGetVal(de));</span><br><span class="line"></span><br><span class="line">            <span class="comment">// HASH_SET_TAKE_VALUE 表示拿走value的值</span></span><br><span class="line">            <span class="keyword">if</span> (flags &amp; HASH_SET_TAKE_VALUE) &#123;</span><br><span class="line">                dictGetVal(de) = value;</span><br><span class="line">                value = <span class="literal">NULL</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 其他的则是复制value</span></span><br><span class="line">                dictGetVal(de) = sdsdup(value);</span><br><span class="line">            &#125;</span><br><span class="line">            update = <span class="number">1</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            sds f,v;</span><br><span class="line">            <span class="comment">// HASH_SET_TAKE_FIELD 表示拿走field</span></span><br><span class="line">            <span class="keyword">if</span> (flags &amp; HASH_SET_TAKE_FIELD) &#123;</span><br><span class="line">                f = field;</span><br><span class="line">                field = <span class="literal">NULL</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 复制field</span></span><br><span class="line">                f = sdsdup(field);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (flags &amp; HASH_SET_TAKE_VALUE) &#123;</span><br><span class="line">                <span class="comment">// 拿走value</span></span><br><span class="line">                v = value;</span><br><span class="line">                value = <span class="literal">NULL</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 复制value</span></span><br><span class="line">                v = sdsdup(value);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 添加新结点</span></span><br><span class="line">            dictAdd(o-&gt;ptr,f,v);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        serverPanic(<span class="string">"Unknown hash encoding"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Free SDS strings we did not referenced elsewhere if the flags</span></span><br><span class="line"><span class="comment">     * want this function to be responsible. */</span></span><br><span class="line">    <span class="comment">// 根据flags判断是否需要释放内存空间</span></span><br><span class="line">    <span class="keyword">if</span> (flags &amp; HASH_SET_TAKE_FIELD &amp;&amp; field) sdsfree(field);</span><br><span class="line">    <span class="keyword">if</span> (flags &amp; HASH_SET_TAKE_VALUE &amp;&amp; value) sdsfree(value);</span><br><span class="line">    <span class="keyword">return</span> update;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>哈希表中删除键值对</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashTypeDelete</span><span class="params">(robj *o, sds field)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> deleted = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_ZIPLIST) &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl, *fptr;</span><br><span class="line"></span><br><span class="line">        zl = o-&gt;ptr;</span><br><span class="line">        <span class="comment">// 头结点地址</span></span><br><span class="line">        fptr = ziplistIndex(zl, ZIPLIST_HEAD);</span><br><span class="line">        <span class="keyword">if</span> (fptr != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="comment">// 查找field的位置</span></span><br><span class="line">            fptr = ziplistFind(fptr, (<span class="keyword">unsigned</span> <span class="keyword">char</span>*)field, sdslen(field), <span class="number">1</span>);</span><br><span class="line">            <span class="keyword">if</span> (fptr != <span class="literal">NULL</span>) &#123;</span><br><span class="line">                <span class="comment">// 找到则删除key和value</span></span><br><span class="line">                zl = ziplistDelete(zl,&amp;fptr); <span class="comment">/* Delete the key. */</span></span><br><span class="line">                zl = ziplistDelete(zl,&amp;fptr); <span class="comment">/* Delete the value. */</span></span><br><span class="line">                o-&gt;ptr = zl;</span><br><span class="line">                deleted = <span class="number">1</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_HT) &#123;</span><br><span class="line">        <span class="comment">// 删除字典中field</span></span><br><span class="line">        <span class="keyword">if</span> (dictDelete((dict*)o-&gt;ptr, field) == C_OK) &#123;</span><br><span class="line">            deleted = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Always check if the dictionary needs a resize after a delete. */</span></span><br><span class="line">            <span class="comment">// 判断字典是否需要进行resize</span></span><br><span class="line">            <span class="keyword">if</span> (htNeedsResize(o-&gt;ptr)) dictResize(o-&gt;ptr);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        serverPanic(<span class="string">"Unknown hash encoding"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> deleted;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>迭代哈希表</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashTypeNext</span><span class="params">(hashTypeIterator *hi)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (hi-&gt;encoding == OBJ_ENCODING_ZIPLIST) &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *fptr, *vptr;</span><br><span class="line"></span><br><span class="line">        zl = hi-&gt;subject-&gt;ptr;</span><br><span class="line">        fptr = hi-&gt;fptr;</span><br><span class="line">        vptr = hi-&gt;vptr;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// ZIPLIST编码则获取cursor</span></span><br><span class="line">        <span class="keyword">if</span> (fptr == <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="comment">/* Initialize cursor */</span></span><br><span class="line">            serverAssert(vptr == <span class="literal">NULL</span>);</span><br><span class="line">            <span class="comment">// 初始化头部</span></span><br><span class="line">            fptr = ziplistIndex(zl, <span class="number">0</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">/* Advance cursor */</span></span><br><span class="line">            serverAssert(vptr != <span class="literal">NULL</span>);</span><br><span class="line">            <span class="comment">// 获取下一个地址</span></span><br><span class="line">            fptr = ziplistNext(zl, vptr);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 迭代完成返回C_ERR</span></span><br><span class="line">        <span class="keyword">if</span> (fptr == <span class="literal">NULL</span>) <span class="keyword">return</span> C_ERR;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Grab pointer to the value (fptr points to the field) */</span></span><br><span class="line">        <span class="comment">// fptr指向key，获取对应的内容地址</span></span><br><span class="line">        vptr = ziplistNext(zl, fptr);</span><br><span class="line">        serverAssert(vptr != <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* fptr, vptr now point to the first or next pair */</span></span><br><span class="line">        hi-&gt;fptr = fptr;</span><br><span class="line">        hi-&gt;vptr = vptr;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (hi-&gt;encoding == OBJ_ENCODING_HT) &#123;</span><br><span class="line">        <span class="comment">// HT编码直接进行字典迭代</span></span><br><span class="line">        <span class="keyword">if</span> ((hi-&gt;de = dictNext(hi-&gt;di)) == <span class="literal">NULL</span>) <span class="keyword">return</span> C_ERR;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        serverPanic(<span class="string">"Unknown hash encoding"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> C_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>哈希对象编码转换</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">hashTypeConvertZiplist</span><span class="params">(robj *o, <span class="keyword">int</span> enc)</span> </span>&#123;</span><br><span class="line">    serverAssert(o-&gt;encoding == OBJ_ENCODING_ZIPLIST);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (enc == OBJ_ENCODING_ZIPLIST) &#123;</span><br><span class="line">        <span class="comment">/* Nothing to do... */</span></span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (enc == OBJ_ENCODING_HT) &#123;</span><br><span class="line">        hashTypeIterator *hi;</span><br><span class="line">        dict *dict;</span><br><span class="line">        <span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 初始化哈希对象迭代器</span></span><br><span class="line">        hi = hashTypeInitIterator(o);</span><br><span class="line">        <span class="comment">// 创建新的字典对象</span></span><br><span class="line">        dict = dictCreate(&amp;hashDictType, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 遍历当前哈希对象</span></span><br><span class="line">        <span class="keyword">while</span> (hashTypeNext(hi) != C_ERR) &#123;</span><br><span class="line">            sds key, value;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 创建新的key</span></span><br><span class="line">            key = hashTypeCurrentObjectNewSds(hi,OBJ_HASH_KEY);</span><br><span class="line">            <span class="comment">// 创建新的value</span></span><br><span class="line">            value = hashTypeCurrentObjectNewSds(hi,OBJ_HASH_VALUE);</span><br><span class="line">            <span class="comment">// 添加kv到字典</span></span><br><span class="line">            ret = dictAdd(dict, key, value);</span><br><span class="line">            <span class="keyword">if</span> (ret != DICT_OK) &#123;</span><br><span class="line">                <span class="comment">// 添加失败则返回错误日志信息</span></span><br><span class="line">                serverLogHexDump(LL_WARNING,<span class="string">"ziplist with dup elements dump"</span>,</span><br><span class="line">                    o-&gt;ptr,ziplistBlobLen(o-&gt;ptr));</span><br><span class="line">                serverPanic(<span class="string">"Ziplist corruption detected"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 释放迭代器</span></span><br><span class="line">        hashTypeReleaseIterator(hi);</span><br><span class="line">        zfree(o-&gt;ptr);</span><br><span class="line">        <span class="comment">// 修改编码</span></span><br><span class="line">        o-&gt;encoding = OBJ_ENCODING_HT;</span><br><span class="line">        <span class="comment">// 指向新的字典</span></span><br><span class="line">        o-&gt;ptr = dict;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        serverPanic(<span class="string">"Unknown hash encoding"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>HGETALL底层实现</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">genericHgetallCommand</span><span class="params">(client *c, <span class="keyword">int</span> flags)</span> </span>&#123;</span><br><span class="line">    robj *o;</span><br><span class="line">    hashTypeIterator *hi;</span><br><span class="line">    <span class="keyword">int</span> multiplier = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">int</span> length, count = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取指定key的哈希对象</span></span><br><span class="line">    <span class="keyword">if</span> ((o = lookupKeyReadOrReply(c,c-&gt;argv[<span class="number">1</span>],shared.emptymultibulk)) == <span class="literal">NULL</span></span><br><span class="line">        || checkType(c,o,OBJ_HASH)) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 计算一对键值对要返回的个数</span></span><br><span class="line">    <span class="keyword">if</span> (flags &amp; OBJ_HASH_KEY) multiplier++;</span><br><span class="line">    <span class="keyword">if</span> (flags &amp; OBJ_HASH_VALUE) multiplier++;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 计算整个哈希对象所有键值对返回的个数</span></span><br><span class="line">    length = hashTypeLength(o) * multiplier;</span><br><span class="line">    <span class="comment">// 回复客户端要返回的个数</span></span><br><span class="line">    addReplyMultiBulkLen(c, length);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 初始化迭代器</span></span><br><span class="line">    hi = hashTypeInitIterator(o);</span><br><span class="line">    <span class="comment">// 迭代并回去结点，回复客户端</span></span><br><span class="line">    <span class="keyword">while</span> (hashTypeNext(hi) != C_ERR) &#123;</span><br><span class="line">        <span class="keyword">if</span> (flags &amp; OBJ_HASH_KEY) &#123;</span><br><span class="line">            addHashIteratorCursorToReply(c, hi, OBJ_HASH_KEY);</span><br><span class="line">            count++;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (flags &amp; OBJ_HASH_VALUE) &#123;</span><br><span class="line">            addHashIteratorCursorToReply(c, hi, OBJ_HASH_VALUE);</span><br><span class="line">            count++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 释放迭代器</span></span><br><span class="line">    hashTypeReleaseIterator(hi);</span><br><span class="line">    serverAssert(count == length);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>HSET命令</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">hsetCommand</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> i, created = <span class="number">0</span>;</span><br><span class="line">    robj *o;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((c-&gt;argc % <span class="number">2</span>) == <span class="number">1</span>) &#123;</span><br><span class="line">        addReplyError(c,<span class="string">"wrong number of arguments for HMSET"</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取指定key的哈希对象，不存在则创建</span></span><br><span class="line">    <span class="keyword">if</span> ((o = hashTypeLookupWriteOrCreate(c,c-&gt;argv[<span class="number">1</span>])) == <span class="literal">NULL</span>) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 判断是否需要编码转换</span></span><br><span class="line">    hashTypeTryConversion(o,c-&gt;argv,<span class="number">2</span>,c-&gt;argc<span class="number">-1</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 添加多个kv对</span></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">2</span>; i &lt; c-&gt;argc; i += <span class="number">2</span>)</span><br><span class="line">        created += !hashTypeSet(o,c-&gt;argv[i]-&gt;ptr,c-&gt;argv[i+<span class="number">1</span>]-&gt;ptr,HASH_SET_COPY);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* HMSET (deprecated) and HSET return value is different. */</span></span><br><span class="line">    <span class="comment">// 实现了HMSET和HSET</span></span><br><span class="line">    <span class="keyword">char</span> *cmdname = c-&gt;argv[<span class="number">0</span>]-&gt;ptr;</span><br><span class="line">    <span class="keyword">if</span> (cmdname[<span class="number">1</span>] == <span class="string">'s'</span> || cmdname[<span class="number">1</span>] == <span class="string">'S'</span>) &#123;</span><br><span class="line">        <span class="comment">/* HSET */</span></span><br><span class="line">        addReplyLongLong(c, created);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/* HMSET */</span></span><br><span class="line">        addReply(c, shared.ok);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 通知数据库有key发生修改</span></span><br><span class="line">    signalModifiedKey(c-&gt;db,c-&gt;argv[<span class="number">1</span>]);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 发送"hset"事件通知</span></span><br><span class="line">    notifyKeyspaceEvent(NOTIFY_HASH,<span class="string">"hset"</span>,c-&gt;argv[<span class="number">1</span>],c-&gt;db-&gt;id);</span><br><span class="line">    server.dirty++;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/21/redis/11_列表对象/" rel="next" title="Redis源码阅读(十一) 列表对象">
+                <i class="fa fa-chevron-left"></i> Redis源码阅读(十一) 列表对象
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/23/redis/13_集合对象/" rel="prev" title="Redis源码阅读(十三) 集合对象">
+                Redis源码阅读(十三) 集合对象 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-编码"><span class="nav-number">1.</span> <span class="nav-text">1. 编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-编码转换"><span class="nav-number">2.</span> <span class="nav-text">2. 编码转换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-命令"><span class="nav-number">3.</span> <span class="nav-text">3. 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-number">4.</span> <span class="nav-text">4. 源码剖析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

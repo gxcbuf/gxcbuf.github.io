@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="跳跃表是一种有序链表，通过维持多个指针指向不同结点用来进行快速访问，它支持平均O(logN)，最坏O(N)的时间复杂度，在Redis中它是实现有序集合ZSET的底层实现之一。 1. 定义Redis中，跳跃表实现如下图  这个跳跃表的实现和 William Pugh的《Skip Lists: A Probabilistic Alternative to Balanced Trees》 中描述的基本相">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码阅读(四) 跳跃表">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/08/06/redis/4_跳跃表/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="跳跃表是一种有序链表，通过维持多个指针指向不同结点用来进行快速访问，它支持平均O(logN)，最坏O(N)的时间复杂度，在Redis中它是实现有序集合ZSET的底层实现之一。 1. 定义Redis中，跳跃表实现如下图  这个跳跃表的实现和 William Pugh的《Skip Lists: A Probabilistic Alternative to Balanced Trees》 中描述的基本相">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://gxcbuf.github.io/images/skiplist.png">
+<meta property="og:updated_time" content="2018-08-06T06:46:25.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis源码阅读(四) 跳跃表">
+<meta name="twitter:description" content="跳跃表是一种有序链表，通过维持多个指针指向不同结点用来进行快速访问，它支持平均O(logN)，最坏O(N)的时间复杂度，在Redis中它是实现有序集合ZSET的底层实现之一。 1. 定义Redis中，跳跃表实现如下图  这个跳跃表的实现和 William Pugh的《Skip Lists: A Probabilistic Alternative to Balanced Trees》 中描述的基本相">
+<meta name="twitter:image" content="http://gxcbuf.github.io/images/skiplist.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/08/06/redis/4_跳跃表/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis源码阅读(四) 跳跃表 | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/08/06/redis/4_跳跃表/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis源码阅读(四) 跳跃表
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-08-06 13:29:32 / 修改时间：14:46:25" itemprop="dateCreated datePublished" datetime="2018-08-06T13:29:32+08:00">2018-08-06</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/源码阅读/" itemprop="url" rel="index"><span itemprop="name">源码阅读</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>跳跃表是一种有序链表，通过维持多个指针指向不同结点用来进行快速访问，它支持平均O(logN)，最坏O(N)的时间复杂度，在Redis中它是实现有序集合ZSET的底层实现之一。</p>
+<h3 id="1-定义"><a href="#1-定义" class="headerlink" title="1. 定义"></a>1. 定义</h3><p>Redis中，跳跃表实现如下图</p>
+<p><img src="/images/skiplist.png" alt="skiplist"></p>
+<p>这个跳跃表的实现和 William Pugh的《Skip Lists: A Probabilistic Alternative to Balanced Trees》 中描述的基本相同，在下面3个方面做了修改： </p>
+<p>​    a) 允许重复的分数   </p>
+<p>​    b) 比较的时候要考虑score和ele本身 </p>
+<p>​    c) 每个结点有一个回退指针，方便从尾部向头部遍历</p>
+<p>​    </p>
+<h4 id="1-1-跳跃表结点"><a href="#1-1-跳跃表结点" class="headerlink" title="1.1 跳跃表结点"></a>1.1 跳跃表结点</h4><ul>
+<li><p>ele  结点key，使用sds字符串存储，该值必须唯一。在字典中也有该ele结点(用于ZSETs使用)</p>
+</li>
+<li><p>score 存储结点分数值，可重复(此时通过ele排序)，一般用来作为排序的参考，但有特殊情况会使用ele排序</p>
+</li>
+<li><p>backward 回退指针，当前结点的前驱结点，在从尾部遍历时非常方便</p>
+</li>
+<li><p>level  </p>
+<p>跳跃表实现的关键，每个元素包含多个level，每个level都可以指向其后方不同的结点，在搜索结点时通过自顶向下的方式搜索，可以大大节约搜索时间。</p>
+<p>每次插入新结点时，通过幂次定律计算其要插入的level，以保证越高level的结点数量越少。</p>
+<ul>
+<li>forward 当前level指向的后继结点</li>
+<li>span 当前level后继结点与该结点所跨域结点的数量，计算排序时相当有用</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> &#123;</span></span><br><span class="line">    <span class="comment">// 结点key，使用sds存储</span></span><br><span class="line">    sds ele;</span><br><span class="line">    <span class="comment">// 结点分数值，一般使用该字段排序</span></span><br><span class="line">    <span class="keyword">double</span> score;</span><br><span class="line">    <span class="comment">// 回退指针，当前结点的前驱结点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> *<span class="title">backward</span>;</span></span><br><span class="line">    <span class="comment">// 层级level，每个结点都有多层，用于保存跳跃信息</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistLevel</span> &#123;</span></span><br><span class="line">        <span class="comment">// 该结点当前层级的前进指针，指向同级的下一个结点</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> *<span class="title">forward</span>;</span></span><br><span class="line">        <span class="comment">// 跨度，记录同级下个结点与当前结点的距离</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">int</span> span;</span><br><span class="line">    &#125; level[];</span><br><span class="line">&#125; zskiplistNode;</span><br></pre></td></tr></table></figure>
+<h4 id="1-2-跳跃表"><a href="#1-2-跳跃表" class="headerlink" title="1.2 跳跃表"></a>1.2 跳跃表</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zskiplist</span> &#123;</span></span><br><span class="line">    <span class="comment">// 跳跃表的头结点和尾结点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zskiplistNode</span> *<span class="title">header</span>, *<span class="title">tail</span>;</span></span><br><span class="line">    <span class="comment">// 跳跃表中结点的数量</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> length;</span><br><span class="line">    <span class="comment">// 跳跃表中结点最大的层数</span></span><br><span class="line">    <span class="keyword">int</span> level;</span><br><span class="line">&#125; zskiplist;</span><br></pre></td></tr></table></figure>
+<h3 id="2-幂次定律"><a href="#2-幂次定律" class="headerlink" title="2. 幂次定律"></a>2. 幂次定律</h3><p>Redis中，使用返回随机level，该随机算法使用幂次定律。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**                                                                                                     </span></span><br><span class="line"><span class="comment"> * 放回一个跳跃表随机level，用作新结点插入                                                              </span></span><br><span class="line"><span class="comment"> * 随机算法使用幂次定律，越大的值生成几率越小                                                           </span></span><br><span class="line"><span class="comment"> */</span>                                                                                                     </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">zslRandomLevel</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;                                                                              </span><br><span class="line">    <span class="keyword">int</span> level = <span class="number">1</span>;                                                                                      </span><br><span class="line">    <span class="comment">// 每次产生的随机数小于 0.25 * 0XFFFF则level加1                                                     </span></span><br><span class="line">    <span class="comment">// 所以越大的level概率越小                                                                          </span></span><br><span class="line">    <span class="keyword">while</span> ((random()&amp;<span class="number">0xFFFF</span>) &lt; (ZSKIPLIST_P * <span class="number">0xFFFF</span>))                                                  </span><br><span class="line">        level += <span class="number">1</span>;                                                                                     </span><br><span class="line">    <span class="keyword">return</span> (level&lt;ZSKIPLIST_MAXLEVEL) ? level : ZSKIPLIST_MAXLEVEL;                                     </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>跳跃表的作用是为了替换平衡二叉树，跳跃表结构清晰简单、易于实现，利用随机化的性质让越高level的结点越少，其效率是极高的，平衡二叉树的维持平衡则需要进行大量的操作。</p>
+<h3 id="3-源码剖析"><a href="#3-源码剖析" class="headerlink" title="3. 源码剖析"></a>3. 源码剖析</h3><p>跳跃表利用较小的空间代价，仅一些指针，提高了查找的效率。</p>
+<ul>
+<li><p>查找结点的rank</p>
+<p>从最高层开始遍历结点的level，通过先右后下的方式查找对应的结点</p>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**                                                                                                 </span></span><br><span class="line"><span class="comment"> * 查找score和ele在跳跃表中的排位                                                                   </span></span><br><span class="line"><span class="comment"> */</span>                                                                                                 </span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="title">zslGetRank</span><span class="params">(zskiplist *zsl, <span class="keyword">double</span> score, sds ele)</span> </span>&#123;                                   </span><br><span class="line">    zskiplistNode *x;                                                                               </span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> rank = <span class="number">0</span>;                                                                         </span><br><span class="line">    <span class="keyword">int</span> i;                                                                                          </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 从高到低遍历跳跃表                                                                           </span></span><br><span class="line">    x = zsl-&gt;header;                                                                                </span><br><span class="line">    <span class="keyword">for</span> (i = zsl-&gt;level<span class="number">-1</span>; i &gt;= <span class="number">0</span>; i--) &#123;      </span><br><span class="line">        <span class="comment">// 结点的forward结点小于查询结点，则继续前进</span></span><br><span class="line">        <span class="keyword">while</span> (x-&gt;level[i].forward &amp;&amp;                                                               </span><br><span class="line">            (x-&gt;level[i].forward-&gt;score &lt; score ||                                                  </span><br><span class="line">                (x-&gt;level[i].forward-&gt;score == score &amp;&amp;                                             </span><br><span class="line">                sdscmp(x-&gt;level[i].forward-&gt;ele,ele) &lt;= <span class="number">0</span>))) &#123;                                      </span><br><span class="line">                                                                                                    </span><br><span class="line">            <span class="comment">// rank值即为span相加，经过几个结点span就为多少</span></span><br><span class="line">            <span class="comment">// 所以经过结点数相加就可得到该结点的排名</span></span><br><span class="line">            rank += x-&gt;level[i].span;                                                               </span><br><span class="line">            x = x-&gt;level[i].forward;                                                                </span><br><span class="line">        &#125;                                                                                           </span><br><span class="line">                                                                                                    </span><br><span class="line">        <span class="comment">/* x might be equal to zsl-&gt;header, so test if obj is non-NULL */</span>                           </span><br><span class="line">        <span class="keyword">if</span> (x-&gt;ele &amp;&amp; sdscmp(x-&gt;ele,ele) == <span class="number">0</span>) &#123;                                                    </span><br><span class="line">            <span class="keyword">return</span> rank;                                                                            </span><br><span class="line">        &#125;                                                                                           </span><br><span class="line">    &#125;                                                                                               </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;                                                                                       </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>创建一个新的跳跃表</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">zskiplist *<span class="title">zslCreate</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;                                                                        </span><br><span class="line">    <span class="keyword">int</span> j;                                                                                          </span><br><span class="line">    zskiplist *zsl;                                                                                 </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 分配内存空间                                                                                 </span></span><br><span class="line">    zsl = zmalloc(<span class="keyword">sizeof</span>(*zsl));                                                                    </span><br><span class="line">                                                                                                    </span><br><span class="line">    zsl-&gt;level = <span class="number">1</span>;                                                                                 </span><br><span class="line">    zsl-&gt;length = <span class="number">0</span>;                                                                                </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 跳跃表头结点                                                                                 </span></span><br><span class="line">    zsl-&gt;header = zslCreateNode(ZSKIPLIST_MAXLEVEL,<span class="number">0</span>,<span class="literal">NULL</span>);                                         </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 头结点每层前进指针和跨度赋值                                                                 </span></span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; ZSKIPLIST_MAXLEVEL; j++) &#123;                                                      </span><br><span class="line">        zsl-&gt;header-&gt;level[j].forward = <span class="literal">NULL</span>;                                                       </span><br><span class="line">        zsl-&gt;header-&gt;level[j].span = <span class="number">0</span>;                                                             </span><br><span class="line">    &#125;                                                                                               </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 回退指针                                                                                     </span></span><br><span class="line">    zsl-&gt;header-&gt;backward = <span class="literal">NULL</span>;                                                                   </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 跳跃表尾结点                                                                                 </span></span><br><span class="line">    zsl-&gt;tail = <span class="literal">NULL</span>;                                                                               </span><br><span class="line">    <span class="keyword">return</span> zsl;                                                                                     </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>跳跃表中插入结点</p>
+<p>找到要插入结点的位置，并且记录所用需要修改level指针的结点</p>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">zskiplistNode *<span class="title">zslInsert</span><span class="params">(zskiplist *zsl, <span class="keyword">double</span> score, sds ele)</span> </span>&#123;</span><br><span class="line">    zskiplistNode *update[ZSKIPLIST_MAXLEVEL], *x;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> rank[ZSKIPLIST_MAXLEVEL];</span><br><span class="line">    <span class="keyword">int</span> i, level;</span><br><span class="line"></span><br><span class="line">    serverAssert(!isnan(score));</span><br><span class="line">    <span class="comment">// 头结点</span></span><br><span class="line">    x = zsl-&gt;header;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从最高层开始查找</span></span><br><span class="line">    <span class="keyword">for</span> (i = zsl-&gt;level<span class="number">-1</span>; i &gt;= <span class="number">0</span>; i--) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* store rank that is crossed to reach the insert position */</span></span><br><span class="line">        <span class="comment">// rank[i]用来记录第i层达到插入位置所跨域结点数，</span></span><br><span class="line">        <span class="comment">// rank[i]初始化为上一层所跨域结点总数</span></span><br><span class="line">        rank[i] = i == (zsl-&gt;level<span class="number">-1</span>) ? <span class="number">0</span> : rank[i+<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 通过每层前进指针遍历跳跃表</span></span><br><span class="line">        <span class="comment">// 比较score和element找到需要更新的结点</span></span><br><span class="line">        <span class="keyword">while</span> (x-&gt;level[i].forward &amp;&amp;</span><br><span class="line">                (x-&gt;level[i].forward-&gt;score &lt; score ||</span><br><span class="line">                    (x-&gt;level[i].forward-&gt;score == score &amp;&amp;</span><br><span class="line">                    sdscmp(x-&gt;level[i].forward-&gt;ele,ele) &lt; <span class="number">0</span>)))</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// 记录第i层该插入结点位置所跨域的结点数</span></span><br><span class="line">            rank[i] += x-&gt;level[i].span;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 前进一个结点</span></span><br><span class="line">            x = x-&gt;level[i].forward;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 记录需要更新的每层结点</span></span><br><span class="line">        update[i] = x;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* we assume the element is not already inside, since we allow duplicated</span></span><br><span class="line"><span class="comment">     * scores, reinserting the same element should never happen since the</span></span><br><span class="line"><span class="comment">     * caller of zslInsert() should test in the hash table if the element is</span></span><br><span class="line"><span class="comment">     * already inside or not. */</span></span><br><span class="line">    <span class="comment">// 我们假定要插入的元素并不存在，需要调用者自己检查元素是否已经存在</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 随机层数</span></span><br><span class="line">    level = zslRandomLevel();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果新level比所有结点层数都大</span></span><br><span class="line">    <span class="keyword">if</span> (level &gt; zsl-&gt;level) &#123;</span><br><span class="line">        <span class="comment">// 初始化未使用层，并记录到update数组中</span></span><br><span class="line">        <span class="keyword">for</span> (i = zsl-&gt;level; i &lt; level; i++) &#123;</span><br><span class="line">            <span class="comment">// 未使用level的rank为0</span></span><br><span class="line">            rank[i] = <span class="number">0</span>;</span><br><span class="line">            update[i] = zsl-&gt;header;</span><br><span class="line">            update[i]-&gt;level[i].span = zsl-&gt;length;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 跳跃表最大level</span></span><br><span class="line">        zsl-&gt;level = level;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建新结点</span></span><br><span class="line">    x = zslCreateNode(level,score,ele);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将update中记录的指针指向新结点</span></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; level; i++) &#123;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 设置新结点的forward指针</span></span><br><span class="line">        x-&gt;level[i].forward = update[i]-&gt;level[i].forward;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// update记录中的结点forward指向新结点</span></span><br><span class="line">        update[i]-&gt;level[i].forward = x;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* update span covered by update[i] as x is inserted here */</span></span><br><span class="line">        <span class="comment">// 计算新结点每层跨域结点数</span></span><br><span class="line">        x-&gt;level[i].span = update[i]-&gt;level[i].span - (rank[<span class="number">0</span>] - rank[i]);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 插入新结点后，计算新的跨度</span></span><br><span class="line">        update[i]-&gt;level[i].span = (rank[<span class="number">0</span>] - rank[i]) + <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* increment span for untouched levels */</span></span><br><span class="line">    <span class="comment">// 没有访问的level也需要增加跨度</span></span><br><span class="line">    <span class="keyword">for</span> (i = level; i &lt; zsl-&gt;level; i++) &#123;</span><br><span class="line">        update[i]-&gt;level[i].span++;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 新结点的后退指针</span></span><br><span class="line">    x-&gt;backward = (update[<span class="number">0</span>] == zsl-&gt;header) ? <span class="literal">NULL</span> : update[<span class="number">0</span>];</span><br><span class="line">    <span class="keyword">if</span> (x-&gt;level[<span class="number">0</span>].forward)</span><br><span class="line">        x-&gt;level[<span class="number">0</span>].forward-&gt;backward = x;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        zsl-&gt;tail = x;</span><br><span class="line">    zsl-&gt;length++;</span><br><span class="line">    <span class="keyword">return</span> x;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>删除结点</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**                                                                                                 </span></span><br><span class="line"><span class="comment"> * 删除跳跃表一个结点，供内部使用                                                                   </span></span><br><span class="line"><span class="comment"> * 更新跳跃表删除结点与其他结点间的关系, 修改forward,span,backward等等                              </span></span><br><span class="line"><span class="comment"> */</span>                                                                                                 </span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">zslDeleteNode</span><span class="params">(zskiplist *zsl, zskiplistNode *x, zskiplistNode **update)</span> </span>&#123;                      </span><br><span class="line">    <span class="keyword">int</span> i;                                                                                          </span><br><span class="line">    <span class="comment">// 更新每层与删除结点相关的forward和span                                                        </span></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; zsl-&gt;level; i++) &#123;                                                              </span><br><span class="line">        <span class="keyword">if</span> (update[i]-&gt;level[i].forward == x) &#123;                                                     </span><br><span class="line">            <span class="comment">// 当前层有该结点，计算新的跨度                                                         </span></span><br><span class="line">            update[i]-&gt;level[i].span += x-&gt;level[i].span - <span class="number">1</span>;                                       </span><br><span class="line">            update[i]-&gt;level[i].forward = x-&gt;level[i].forward;                                      </span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;                                                                                    </span><br><span class="line">            <span class="comment">// 当前层没有该结点，跨度减1                                                            </span></span><br><span class="line">            update[i]-&gt;level[i].span -= <span class="number">1</span>;                                                          </span><br><span class="line">        &#125;                                                                                           </span><br><span class="line">    &#125;                                                                                               </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 确保删除结点后，回退指针不会出错                                                             </span></span><br><span class="line">    <span class="keyword">if</span> (x-&gt;level[<span class="number">0</span>].forward) &#123;                                                                      </span><br><span class="line">        x-&gt;level[<span class="number">0</span>].forward-&gt;backward = x-&gt;backward;                                                </span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;                                                                                        </span><br><span class="line">        zsl-&gt;tail = x-&gt;backward;                                                                    </span><br><span class="line">    &#125;                                                                                               </span><br><span class="line">                                                                                                    </span><br><span class="line">    <span class="comment">// 当删除结点在最高层，且只有一个元素时，level--                                                </span></span><br><span class="line">    <span class="keyword">while</span>(zsl-&gt;level &gt; <span class="number">1</span> &amp;&amp; zsl-&gt;header-&gt;level[zsl-&gt;level<span class="number">-1</span>].forward == <span class="literal">NULL</span>)                       </span><br><span class="line">        zsl-&gt;level--;                                                                               </span><br><span class="line">    zsl-&gt;length--;                                                                                  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/02/redis/3_字典/" rel="next" title="Redis源码阅读(三) 字典">
+                <i class="fa fa-chevron-left"></i> Redis源码阅读(三) 字典
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/08/redis/5_整数集合/" rel="prev" title="Redis源码阅读(五) 整数集合">
+                Redis源码阅读(五) 整数集合 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-number">1.</span> <span class="nav-text">1. 定义</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-跳跃表结点"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 跳跃表结点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-跳跃表"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 跳跃表</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-幂次定律"><span class="nav-number">2.</span> <span class="nav-text">2. 幂次定律</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-源码剖析"><span class="nav-number">3.</span> <span class="nav-text">3. 源码剖析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

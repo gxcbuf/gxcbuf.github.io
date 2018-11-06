@@ -1,511 +1,904 @@
 <!DOCTYPE html>
-<html lang=zh>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name=referrer content=never>
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
-  <meta name="renderer" content="webkit">
-  <meta http-equiv="Cache-Control" content="no-transform" />
-  <meta http-equiv="Cache-Control" content="no-siteapp" />
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="format-detection" content="telephone=no,email=no,adress=no">
-  <!-- Color theme for statusbar -->
-  <meta name="theme-color" content="#000000" />
-  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
-  <meta http-equiv="window-target" content="_top" />
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
   
-  
-  <title>redis源码阅读(零) 概述 | Hexo</title>
-  <meta name="description" content="从现在起开始写博客，希望自己可以坚持下来。完成本系列后再写概述  源码版本 redis-4.0.10 参考资料：  https://github.com/huangz1990/redis-3.0-annotated 《Redis设计与实现》第二版 —— 黄健宏">
+
+
+
+
+  <meta name="description" content="历时3个月，粗浅的过了一遍源码，因为没有使用过集群，对于这部分看的比较随意，多是参考资料进行学习 对于其他一些功能源码并未阅读，等以后有兴趣了再看看  源码版本 redis-4.0.10 参考资料：  https://github.com/huangz1990/redis-3.0-annotated https://github.com/menwengit/redis_source_annota">
 <meta name="keywords" content="redis">
 <meta property="og:type" content="article">
 <meta property="og:title" content="redis源码阅读(零) 概述">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/01/redis/0_redis源码阅读/index.html">
-<meta property="og:site_name" content="个人博客">
-<meta property="og:description" content="从现在起开始写博客，希望自己可以坚持下来。完成本系列后再写概述  源码版本 redis-4.0.10 参考资料：  https://github.com/huangz1990/redis-3.0-annotated 《Redis设计与实现》第二版 —— 黄健宏">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="历时3个月，粗浅的过了一遍源码，因为没有使用过集群，对于这部分看的比较随意，多是参考资料进行学习 对于其他一些功能源码并未阅读，等以后有兴趣了再看看  源码版本 redis-4.0.10 参考资料：  https://github.com/huangz1990/redis-3.0-annotated https://github.com/menwengit/redis_source_annota">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2018-08-01T06:33:11.000Z">
+<meta property="og:updated_time" content="2018-10-25T08:29:24.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="redis源码阅读(零) 概述">
-<meta name="twitter:description" content="从现在起开始写博客，希望自己可以坚持下来。完成本系列后再写概述  源码版本 redis-4.0.10 参考资料：  https://github.com/huangz1990/redis-3.0-annotated 《Redis设计与实现》第二版 —— 黄健宏">
-  <!-- Canonical links -->
-  <link rel="canonical" href="http://gxcbuf.github.io/2018/08/01/redis/0_redis源码阅读/index.html">
+<meta name="twitter:description" content="历时3个月，粗浅的过了一遍源码，因为没有使用过集群，对于这部分看的比较随意，多是参考资料进行学习 对于其他一些功能源码并未阅读，等以后有兴趣了再看看  源码版本 redis-4.0.10 参考资料：  https://github.com/huangz1990/redis-3.0-annotated https://github.com/menwengit/redis_source_annota">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/08/01/redis/0_redis源码阅读/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>redis源码阅读(零) 概述 | 孰能生巧</title>
   
-    <link rel="alternate" href="/atom.xml" title="个人博客" type="application/atom+xml">
-  
-  
-    <link rel="icon" href="/favicon.png" type="image/x-icon">
-  
-  <!-- font-awesome CSS -->
-  <!-- <link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"> -->
-  <link rel="stylesheet" href="/css/style.css">
-  
-    
-    
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
 
 </head>
 
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
 
-<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
-  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
-  <div class="slimContent">
-    <div class="navbar-header">
-      
-      
-      <div class="profile-block text-center">
-        <a id="avatar" href="https://github.com/gxcbuf" target="_blank">
-          <img class="img-circle img-rotate" src="/images/gxcbuf.jpg" width="200" height="200">
-        </a>
-        <h2 id="name" class="hidden-xs hidden-sm">郭欣成</h2>
-        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Person &amp; Developer</h3>
-        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Beijing, China</small>
-      </div>
-      
-      <div class="search" id="search-form-wrap">
+  
+  
+    
+  
 
-    <form class="search-form sidebar-form">
-        <div class="input-group">
-            <input type="text" class="search-form-input form-control" placeholder="搜索" />
-            <span class="input-group-btn">
-                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
-            </span>
-        </div>
-    </form>
-    <div class="ins-search">
-  <div class="ins-search-mask"></div>
-  <div class="ins-search-container">
-    <div class="ins-input-wrapper">
-      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
-      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
     </div>
-    <div class="ins-section-wrapper">
-      <div class="ins-section-container"></div>
-    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
   </div>
 </div>
 
 
-</div>
-      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-    </div>
-    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
-      <ul class="nav navbar-nav main-nav">
-        
-        
-        
-        <li class="menu-item menu-item-home">
-          <a href="/.">
-            
-            <i class="icon icon-home-fill"></i>
-            
-            <span class="menu-title">首页</span>
-          </a>
-        </li>
-        
-        
-        
-        <li class="menu-item menu-item-archives">
-          <a href="/archives">
-            
-            <i class="icon icon-archives-fill"></i>
-            
-            <span class="menu-title">归档</span>
-          </a>
-        </li>
-        
-        
-        
-        <li class="menu-item menu-item-categories">
-          <a href="/categories">
-            
-            <i class="icon icon-folder"></i>
-            
-            <span class="menu-title">分类</span>
-          </a>
-        </li>
-        
-        
-        
-        <li class="menu-item menu-item-tags">
-          <a href="/tags">
-            
-            <i class="icon icon-tags"></i>
-            
-            <span class="menu-title">标签</span>
-          </a>
-        </li>
-        
-        
-        
-        <li class="menu-item menu-item-repository">
-          <a href="/repository">
-            
-            <i class="icon icon-project"></i>
-            
-            <span class="menu-title">项目</span>
-          </a>
-        </li>
-        
-        
-        
-        <li class="menu-item menu-item-books">
-          <a href="/books">
-            
-            <i class="icon icon-book-fill"></i>
-            
-            <span class="menu-title">书单</span>
-          </a>
-        </li>
-        
-        
-        
-        <li class="menu-item menu-item-links">
-          <a href="/links">
-            
-            <i class="icon icon-friendship"></i>
-            
-            <span class="menu-title">友链</span>
-          </a>
-        </li>
-        
-        
-        
-        <li class="menu-item menu-item-about">
-          <a href="/about">
-            
-            <i class="icon icon-cup-fill"></i>
-            
-            <span class="menu-title">关于</span>
-          </a>
-        </li>
-        
-      </ul>
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
       
-	
-    <ul class="social-links">
-    	
-        <li><a href="https://github.com/gxcbuf" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
         
-        <li><a href="http://weibo.com/gxcbuf" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
         
-        <li><a href="https://twitter.com/gxcbuf" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
         
-        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
         
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
     </ul>
-
-    </nav>
-  </div>
-</header>
+  
 
   
-    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
-  <div class="slimContent">
     
-      
-  <div class="widget">
-    <h3 class="widget-title">分类</h3>
-    <div class="widget-body">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/源码阅读/">源码阅读</a><span class="category-list-count">2</span></li></ul>
-    </div>
-  </div>
+
+  
+
+  
+</nav>
 
 
-    
-      
-  <div class="widget">
-    <h3 class="widget-title">标签</h3>
-    <div class="widget-body">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">2</span></li></ul>
-    </div>
-  </div>
 
+  
+
+
+
+</div>
+    </header>
 
     
-      
-  <div class="widget">
-    <h3 class="widget-title">归档</h3>
-    <div class="widget-body">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/08/">八月 2018</a><span class="archive-list-count">2</span></li></ul>
-    </div>
-  </div>
 
 
-    
-      
-  <div class="widget">
-    <h3 class="widget-title">最新文章</h3>
-    <div class="widget-body">
-      <ul class="recent-post-list list-unstyled no-thumbnail">
-        
-          <li>
-            
-            <div class="item-inner">
-              <p class="item-category">
-                <a class="category-link" href="/categories/源码阅读/">源码阅读</a>
-              </p>
-              <p class="item-title">
-                <a href="/2018/08/01/redis/1_sds字符串/" class="title">Redis源码阅读(一) 简单动态字符串</a>
-              </p>
-              <p class="item-date">
-                <time datetime="2018-08-01T05:26:01.000Z" itemprop="datePublished">2018-08-01</time>
-              </p>
-            </div>
-          </li>
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
           
-          <li>
+          <div id="content" class="content">
             
-            <div class="item-inner">
-              <p class="item-category">
-                <a class="category-link" href="/categories/源码阅读/">源码阅读</a>
-              </p>
-              <p class="item-title">
-                <a href="/2018/08/01/redis/0_redis源码阅读/" class="title">redis源码阅读(零) 概述</a>
-              </p>
-              <p class="item-date">
-                <time datetime="2018-08-01T04:23:19.000Z" itemprop="datePublished">2018-08-01</time>
-              </p>
-            </div>
-          </li>
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/08/01/redis/0_redis源码阅读/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">redis源码阅读(零) 概述
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-08-01 12:23:19" itemprop="dateCreated datePublished" datetime="2018-08-01T12:23:19+08:00">2018-08-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-10-25 16:29:24" itemprop="dateModified" datetime="2018-10-25T16:29:24+08:00">2018-10-25</time>
+              
+            
+          </span>
+
           
-      </ul>
-    </div>
-  </div>
-  
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/源码阅读/" itemprop="url" rel="index"><span itemprop="name">源码阅读</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
 
     
-  </div>
-</aside>
-
-  
-  
-<main class="main" role="main">
-  <div class="content">
-  <article id="post-redis/0_redis源码阅读" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
     
-    <div class="article-header">
-      
-        
-  
-    <h1 class="article-title" itemprop="name">
-      redis源码阅读(零) 概述
-    </h1>
-  
+    
+    <div class="post-body" itemprop="articleBody">
 
       
-      <div class="article-meta">
-        <span class="article-date">
-    <i class="icon icon-calendar-check"></i>
-	<a href="/2018/08/01/redis/0_redis源码阅读/" class="article-date">
-	  <time datetime="2018-08-01T04:23:19.000Z" itemprop="datePublished">2018-08-01</time>
-	</a>
-</span>
-        
-  <span class="article-category">
-    <i class="icon icon-folder"></i>
-    <a class="article-category-link" href="/categories/源码阅读/">源码阅读</a>
-  </span>
+      
 
-        
-  <span class="article-tag">
-    <i class="icon icon-tags"></i>
-	<a class="article-tag-link" href="/tags/redis/">redis</a>
-  </span>
-
-
-        
-
-        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2018/08/01/redis/0_redis源码阅读/#comments" class="article-comment-link">评论</a></span>
-        
-      </div>
-    </div>
-    <div class="article-entry markdown-body" itemprop="articleBody">
       
         <blockquote>
-<p>从现在起开始写博客，希望自己可以坚持下来。完成本系列后再写概述</p>
+<p>历时3个月，粗浅的过了一遍源码，因为没有使用过集群，对于这部分看的比较随意，多是参考资料进行学习</p>
+<p>对于其他一些功能源码并未阅读，等以后有兴趣了再看看</p>
 </blockquote>
 <p>源码版本 redis-4.0.10</p>
 <p>参考资料：</p>
 <ul>
 <li><a href="https://github.com/huangz1990/redis-3.0-annotated" target="_blank" rel="noopener">https://github.com/huangz1990/redis-3.0-annotated</a></li>
+<li><a href="https://github.com/menwengit/redis_source_annotation" target="_blank" rel="noopener">https://github.com/menwengit/redis_source_annotation</a></li>
 <li>《Redis设计与实现》第二版 —— 黄健宏</li>
 </ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">文件名称</th>
+<th style="text-align:center">作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">sds.c 和 sds.h</td>
+<td style="text-align:center">简单动态字符串</td>
+</tr>
+<tr>
+<td style="text-align:center">adlist.c 和 adlist.h</td>
+<td style="text-align:center">链表</td>
+</tr>
+<tr>
+<td style="text-align:center">dict.c 和 dict.h</td>
+<td style="text-align:center">字典</td>
+</tr>
+<tr>
+<td style="text-align:center">t_zset.c和 server.h</td>
+<td style="text-align:center">跳跃表</td>
+</tr>
+<tr>
+<td style="text-align:center">intset.c 和 intset.h</td>
+<td style="text-align:center">整数集合</td>
+</tr>
+<tr>
+<td style="text-align:center">ziplist.c 和 ziplist.h</td>
+<td style="text-align:center">压缩列表</td>
+</tr>
+<tr>
+<td style="text-align:center">zipmap.c 和 zipmap.h</td>
+<td style="text-align:center">压缩字典</td>
+</tr>
+<tr>
+<td style="text-align:center">quicklist.c 和 quicklist.h</td>
+<td style="text-align:center">快速列表</td>
+</tr>
+<tr>
+<td style="text-align:center">object.c 和 server.h</td>
+<td style="text-align:center">对象系统</td>
+</tr>
+<tr>
+<td style="text-align:center">t_string.c</td>
+<td style="text-align:center">字符键</td>
+</tr>
+<tr>
+<td style="text-align:center">t_list.c 和 server.h</td>
+<td style="text-align:center">列表键</td>
+</tr>
+<tr>
+<td style="text-align:center">t_hash.c 和 server.h</td>
+<td style="text-align:center">哈希键</td>
+</tr>
+<tr>
+<td style="text-align:center">t_set.c 和 server.h</td>
+<td style="text-align:center">集合键</td>
+</tr>
+<tr>
+<td style="text-align:center">t_zset.c 和 server.h</td>
+<td style="text-align:center">有序集合键</td>
+</tr>
+<tr>
+<td style="text-align:center">db.c 和 server.h</td>
+<td style="text-align:center">Redis数据库</td>
+</tr>
+<tr>
+<td style="text-align:center">notify.c</td>
+<td style="text-align:center">数据库通知功能</td>
+</tr>
+<tr>
+<td style="text-align:center">rdb.c 和 rdb.h</td>
+<td style="text-align:center">RDB持久化</td>
+</tr>
+<tr>
+<td style="text-align:center">aof.c</td>
+<td style="text-align:center">AOF持久化</td>
+</tr>
+<tr>
+<td style="text-align:center">rio.c 和 rio.h</td>
+<td style="text-align:center">抽象输入输出</td>
+</tr>
+<tr>
+<td style="text-align:center">replication.c</td>
+<td style="text-align:center">集群复制功能</td>
+</tr>
+<tr>
+<td style="text-align:center">sentinel.c</td>
+<td style="text-align:center">集群哨兵功能</td>
+</tr>
+<tr>
+<td style="text-align:center">cluster.c</td>
+<td style="text-align:center">集群功能</td>
+</tr>
+</tbody>
+</table>
 
       
     </div>
-    <div class="article-footer">
-      <blockquote class="mt-2x">
-  <ul class="post-copyright list-unstyled">
-    
-    <li class="post-copyright-link hidden-xs">
-      <strong>本文链接：</strong>
-      <a href="http://gxcbuf.github.io/2018/08/01/redis/0_redis源码阅读/" title="redis源码阅读(零) 概述" target="_blank" rel="external">http://gxcbuf.github.io/2018/08/01/redis/0_redis源码阅读/</a>
-    </li>
-    
-    
-      <li class="post-copyright-license">
-        <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
-      </li>
-    
-  </ul>
-</blockquote>
 
-
-<div class="panel panel-default panel-badger">
-  <div class="panel-body">
-    <figure class="media">
-      <div class="media-left">
-        <a href="https://github.com/gxcbuf" target="_blank" class="img-burn thumb-sm visible-lg">
-          <img src="/images/gxcbuf.jpg" class="img-rounded w-full" alt="">
-        </a>
-      </div>
-      <div class="media-body">
-        <h3 class="media-heading"><a href="https://github.com/gxcbuf" target="_blank"><span class="text-dark">郭欣成</span><small class="ml-1x">Person &amp; Developer</small></a></h3>
-        <div>Make an effort on free.</div>
-      </div>
-    </figure>
-  </div>
-</div>
-
-
-    </div>
-  </article>
-  
     
-  <section id="comments">
-  	
-       
-    <div id="vcomments"></div>
 
     
     
-  </section>
-
-
-  
-</div>
-
-  <nav class="bar bar-footer clearfix" data-stick-bottom>
-  <div class="bar-inner">
-  
-  <ul class="pager pull-left">
     
-    <li class="prev">
-      <a href="/2018/08/01/redis/1_sds字符串/" title="Redis源码阅读(一) 简单动态字符串"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
-    </li>
-    
-    
-    
-  </ul>
-  
-  
-  
-  <div class="bar-right">
-    
-  </div>
-  </div>
-</nav>
-  
 
+    
 
-</main>
+    
 
-  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
-	
-	
-    <ul class="social-links">
-    	
-        <li><a href="https://github.com/gxcbuf" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
-        
-        <li><a href="http://weibo.com/gxcbuf" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
-        
-        <li><a href="https://twitter.com/gxcbuf" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
-        
-        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
-        
-    </ul>
+    
 
-    <div class="copyright">
-    	
-        &copy; 2018 郭欣成
-        
-        <div class="publishby">
-        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
         </div>
-    </div>
-</footer>
-  <script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
-<script>
-window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
-</script>
-<script src="/js/plugin.min.js"></script>
-<script src="/js/application.js"></script>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/01/redis/1_sds字符串/" rel="prev" title="Redis源码阅读(一) 简单动态字符串">
+                Redis源码阅读(一) 简单动态字符串 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
   
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
     
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
     
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
     
-        <script>
-(function (window) {
-    var INSIGHT_CONFIG = {
-        TRANSLATION: {
-            POSTS: '文章',
-            PAGES: '页面',
-            CATEGORIES: '分类',
-            TAGS: '标签',
-            UNTITLED: '(未命名)',
-        },
-        ROOT_URL: '/',
-        CONTENT_URL: '/content.json',
-    };
-    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
-})(window);
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
 </script>
-<script src="/js/insight.js"></script>
-    
-    
-    
-        
 
 
-    
-    
-        
-    
-   <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
-   <script src="//cdn.jsdelivr.net/npm/valine"></script>
-   <script type="text/javascript">
-    var GUEST = ['nick','mail','link'];
-     var meta = 'nick,mail,link';
-     meta = meta.split(',').filter(function (item) {
-       return GUEST.indexOf(item)>-1;
-     });
-     new Valine({
-         el: '#vcomments' ,
-         verify: false,
-         notify: false,
-         appId: '',
-         appKey: '',
-         placeholder: 'Just go go',
-         avatar:'mm',
-         meta:meta,
-         pageSize:'10' || 10,
-         visitor: false
-     });
-   </script>
-
-    
-
-    
-    
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
 
 </body>
 </html>

@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="Redis是一个内存数据库，数据库的状态都存储在内存中，如果服务器进程退出，那么所有的服务器状态都会丢失。Redis提供了RDB持久化功能，可以将内存中数据库的状态保存到磁盘中，避免因为意外进程退出导致的数据库状态丢失。 1. RDB文件 RDB存储对象长度定义，用来表示存储当前对象需要多少字节     宏定义 值 描述     RDB_6BITLEN 0 00XXXXXX，长度存储在后8bits">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码阅读(十六) RDB持久化">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/09/03/redis/16_RDB持久化/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="Redis是一个内存数据库，数据库的状态都存储在内存中，如果服务器进程退出，那么所有的服务器状态都会丢失。Redis提供了RDB持久化功能，可以将内存中数据库的状态保存到磁盘中，避免因为意外进程退出导致的数据库状态丢失。 1. RDB文件 RDB存储对象长度定义，用来表示存储当前对象需要多少字节     宏定义 值 描述     RDB_6BITLEN 0 00XXXXXX，长度存储在后8bits">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-09-03T09:02:10.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis源码阅读(十六) RDB持久化">
+<meta name="twitter:description" content="Redis是一个内存数据库，数据库的状态都存储在内存中，如果服务器进程退出，那么所有的服务器状态都会丢失。Redis提供了RDB持久化功能，可以将内存中数据库的状态保存到磁盘中，避免因为意外进程退出导致的数据库状态丢失。 1. RDB文件 RDB存储对象长度定义，用来表示存储当前对象需要多少字节     宏定义 值 描述     RDB_6BITLEN 0 00XXXXXX，长度存储在后8bits">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/09/03/redis/16_RDB持久化/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis源码阅读(十六) RDB持久化 | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/09/03/redis/16_RDB持久化/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis源码阅读(十六) RDB持久化
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-09-03 17:01:12 / 修改时间：17:02:10" itemprop="dateCreated datePublished" datetime="2018-09-03T17:01:12+08:00">2018-09-03</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/源码阅读/" itemprop="url" rel="index"><span itemprop="name">源码阅读</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Redis是一个内存数据库，数据库的状态都存储在内存中，如果服务器进程退出，那么所有的服务器状态都会丢失。Redis提供了RDB持久化功能，可以将内存中数据库的状态保存到磁盘中，避免因为意外进程退出导致的数据库状态丢失。</p>
+<h3 id="1-RDB文件"><a href="#1-RDB文件" class="headerlink" title="1. RDB文件"></a>1. RDB文件</h3><ul>
+<li>RDB存储对象长度定义，用来表示存储当前对象需要多少字节</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>宏定义</th>
+<th>值</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RDB_6BITLEN</td>
+<td>0</td>
+<td style="text-align:left">00XXXXXX，长度存储在后8bits中</td>
+</tr>
+<tr>
+<td>RDB_14BITLEN</td>
+<td>1</td>
+<td style="text-align:left">01XXXXXX XXXXXXXX 长度存储在后14bits中</td>
+</tr>
+<tr>
+<td>RDB_32BITLEN</td>
+<td>0x80</td>
+<td style="text-align:left">10000000 [32 bit] 长度存储在后32bits中</td>
+</tr>
+<tr>
+<td>RDB_64BITLEN</td>
+<td>0x81</td>
+<td style="text-align:left">10000001 [64 bit] 长度存储在后64bits中</td>
+</tr>
+<tr>
+<td>RDB_ENCVAL</td>
+<td>3</td>
+<td style="text-align:left">11OBKIND 表示一个特殊编码对象，用REDIS_RDS_ENC_*指定</td>
+</tr>
+<tr>
+<td>RDB_LENERR</td>
+<td>UINT64_MAX</td>
+<td style="text-align:left">表示长度错误</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>RDB对象编码类型，RDB_ENCVAL定义长度情况下， 用该编码类型表示</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>宏定义</th>
+<th>值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RDB_ENC_INT8</td>
+<td>0</td>
+<td>8位有符号整数</td>
+</tr>
+<tr>
+<td>RDB_ENC_INT16</td>
+<td>1</td>
+<td>16位有符号整数</td>
+</tr>
+<tr>
+<td>RDB_ENC_INT32</td>
+<td>2</td>
+<td>32位有符号整数</td>
+</tr>
+<tr>
+<td>RDB_ENC_LZF</td>
+<td>3</td>
+<td>LZF压缩字符串</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>RDB对象存储类型，将Redis中的对象存储到RDB文件中保存的类型</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>宏定义</th>
+<th>值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RDB_TYPE_STRING</td>
+<td>0</td>
+<td>字符串对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_LIST</td>
+<td>1</td>
+<td>列表对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_SET</td>
+<td>2</td>
+<td>集合对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_ZSET</td>
+<td>3</td>
+<td>有序集合对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_HASH</td>
+<td>4</td>
+<td>哈希对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_ZSET_2</td>
+<td>5</td>
+<td>有序集合对象版本2，score用二进制存储</td>
+</tr>
+<tr>
+<td>RDB_TYPE_MODULE</td>
+<td>6</td>
+<td>模块对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_MODULE_2</td>
+<td>7</td>
+<td>带有注释的模块对象，用于解析而不生成</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>RDB对象存储类型的编码方式</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>宏定义</th>
+<th>值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RDB_TYPE_HASH_ZIPMAP</td>
+<td>9</td>
+<td>ZIPMAP编码的哈希对象，已不再使用</td>
+</tr>
+<tr>
+<td>RDB_TYPE_LIST_ZIPLIST</td>
+<td>10</td>
+<td>ZIPLIST编码的列表对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_SET_INTSET</td>
+<td>11</td>
+<td>INTSET编码的集合对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_ZSET_ZIPLIST</td>
+<td>12</td>
+<td>ZIPLIST编码的有序集合对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_HASH_ZIPLIST</td>
+<td>13</td>
+<td>ZIPLIST编码的哈希对象</td>
+</tr>
+<tr>
+<td>RDB_TYPE_LIST_QUICKLIST</td>
+<td>14</td>
+<td>QUICKLIST编码的列表对象</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>RDB操作码，保存和加载类型时使用</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>宏定义</th>
+<th>值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RDB_OPCODE_AUX</td>
+<td>250</td>
+<td>AUX操作</td>
+</tr>
+<tr>
+<td>RDB_OPCODE_RESIZEDB</td>
+<td>251</td>
+<td>需要resize操作</td>
+</tr>
+<tr>
+<td>RDB_OPCODE_EXPIRETIME_MS</td>
+<td>252</td>
+<td>过期毫秒数</td>
+</tr>
+<tr>
+<td>RDB_OPCODE_EXPIRETIME</td>
+<td>253</td>
+<td>过期秒数</td>
+</tr>
+<tr>
+<td>RDB_OPCODE_SELECTDB</td>
+<td>254</td>
+<td>选择db操作</td>
+</tr>
+<tr>
+<td>RDB_OPCODE_EOF</td>
+<td>255</td>
+<td>结束操作</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1-1-RDB文件结构"><a href="#1-1-RDB文件结构" class="headerlink" title="1.1 RDB文件结构"></a>1.1 RDB文件结构</h4><table>
+<thead>
+<tr>
+<th>REDIS</th>
+<th>VERSION</th>
+<th>DATABASE</th>
+<th>EOF</th>
+<th>CHECKNUM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>“REDIS”</td>
+<td>版本号</td>
+<td>数据区域</td>
+<td>结束标识</td>
+<td>校验和</td>
+</tr>
+</tbody>
+</table>
+<p>RDB文件以“REDIS”开头，后紧接着4字节的版本号。</p>
+<p>database数据区域存储着一个或多个特定格式编码的数据库。</p>
+<p>EOF是RDB正文结束。</p>
+<p>check_num是校验和，通过前4部分计算得出。</p>
+<h4 id="1-2-database数据区域部分"><a href="#1-2-database数据区域部分" class="headerlink" title="1.2 database数据区域部分"></a>1.2 database数据区域部分</h4><p>一个RDB文件可能存在多个非空数据库，通过OPCODE_SELECTDB操作码可以选择数据库对象，格式</p>
+<table>
+<thead>
+<tr>
+<th>RDB_OPCODE_SELECTDB</th>
+<th>db_number</th>
+<th>key_value_pairs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>选择数据库操作码 254</td>
+<td>数据库编号</td>
+<td>所有的键值对数据</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1-3-键值对数据区域"><a href="#1-3-键值对数据区域" class="headerlink" title="1.3 键值对数据区域"></a>1.3 键值对数据区域</h4><p>RDB文件中每个键值对数据区域都保存着一个或多个键值对，如果带有过期时间，那么过期时间也会被保存。</p>
+<table>
+<thead>
+<tr>
+<th>RDB_OPCODE_EXPIRETIME</th>
+<th>ms</th>
+<th>TYPE</th>
+<th>key</th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>过期时间操作码</td>
+<td>过期时间</td>
+<td>键类型</td>
+<td>键</td>
+<td>值</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2-RDB文件的创建"><a href="#2-RDB文件的创建" class="headerlink" title="2. RDB文件的创建"></a>2. RDB文件的创建</h3><p>SAVE命令和BGSAVE命令可以创建RDB文件。由于Redis是单进程的，所以SAVE命令创建RDB文件会阻塞Redis服务器，这种情况下，服务器不能处理任何命令请求。BGSAVE则会生成一个子进程用于创建RDB文件，父进程则进行处理命令请求。</p>
+<blockquote>
+<p>注：在同一时间内，只能存在一个BGSAVE子进程。</p>
+</blockquote>
+<p>RDB文件创建由rdb.c/rdbSave函数实现：</p>
+<ol>
+<li><p>创建临时文件temp-pid.rdb，用于保存RDB内容</p>
+</li>
+<li><p>将数据库内容按照一定编码格式写入文件</p>
+<p>1）计算校验和</p>
+<p>2）存储redis版本</p>
+<p>3）遍历服务器数据库并写入到文件，内存内容到RDB需要按照一定的编码格式和规则</p>
+<p>4）存在lua脚本也需要备份脚本</p>
+<p>5）存储EOF操作码</p>
+<p>6）存储校验和</p>
+</li>
+<li><p>修改临时文件名为RDB文件名</p>
+</li>
+<li><p>记录服务端操作信息</p>
+</li>
+</ol>
+<p>BGSAVE命令同样会调用rdbSave函数，区别是在fork出的子进程中执行该函数。</p>
+<h3 id="3-RDB文件的加载"><a href="#3-RDB文件的加载" class="headerlink" title="3. RDB文件的加载"></a>3. RDB文件的加载</h3><p>在Redis服务器启动时，会根据配置的选项进行初始化，若开启了RDB功能，且未开启AOF功能，则会从RDB文件中加载数据到内存中。加载过程中，Redis也是处于阻塞状态，不能处理其他服务指令。</p>
+<blockquote>
+<p>AOF文件更新频率通常高于RDB，所以如果开启了AOF功能，服务器会首先使用AOF文件还原数据库状态。</p>
+</blockquote>
+<p>RDB文件的加载由rdb.c/rdbLoad函数实现：</p>
+<ol>
+<li><p>打开RDB文件</p>
+</li>
+<li><p>开始加载</p>
+</li>
+<li><p>初始化Redis输入输出缓存对象</p>
+</li>
+<li><p>读取RDB文件中的数据到内存</p>
+<p>1）设置计算校验和函数</p>
+<p>2）设置加载读或写的最大字节数</p>
+<p>3）读取9字节，这9字节存储着redis的版本信息，并判断版本是否正确</p>
+<p>4）循环读取RDB文件，按照写入RDB文件的编码方式进行读取</p>
+<p>5）Redis版本大于5则需要进行校验计算</p>
+</li>
+<li><p>关闭文件</p>
+</li>
+<li><p>加载完成</p>
+</li>
+</ol>
+<h3 id="4-源码剖析"><a href="#4-源码剖析" class="headerlink" title="4. 源码剖析"></a>4. 源码剖析</h3><ul>
+<li>RDB创建实现</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">rdbSaveRio</span><span class="params">(rio *rdb, <span class="keyword">int</span> *error, <span class="keyword">int</span> flags, rdbSaveInfo *rsi)</span> </span>&#123;</span><br><span class="line">    dictIterator *di = <span class="literal">NULL</span>;</span><br><span class="line">    dictEntry *de;</span><br><span class="line">    <span class="keyword">char</span> magic[<span class="number">10</span>];</span><br><span class="line">    <span class="keyword">int</span> j;</span><br><span class="line">    <span class="keyword">uint64_t</span> cksum;</span><br><span class="line">    <span class="keyword">size_t</span> processed = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 校验和选项</span></span><br><span class="line">    <span class="keyword">if</span> (server.rdb_checksum)</span><br><span class="line">        rdb-&gt;update_cksum = rioGenericUpdateChecksum;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 存储redis版本到magic</span></span><br><span class="line">    <span class="built_in">snprintf</span>(magic,<span class="keyword">sizeof</span>(magic),<span class="string">"REDIS%04d"</span>,RDB_VERSION);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// mgaic写入到RDB</span></span><br><span class="line">    <span class="keyword">if</span> (rdbWriteRaw(rdb,magic,<span class="number">9</span>) == <span class="number">-1</span>) <span class="keyword">goto</span> werr;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将RDB文件的默认信息写入</span></span><br><span class="line">    <span class="keyword">if</span> (rdbSaveInfoAuxFields(rdb,flags,rsi) == <span class="number">-1</span>) <span class="keyword">goto</span> werr;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 遍历服务端数据库</span></span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; server.dbnum; j++) &#123;</span><br><span class="line">        <span class="comment">// 当前数据库指针</span></span><br><span class="line">        redisDb *db = server.db+j;</span><br><span class="line">        <span class="comment">// 数据库的键值对字典</span></span><br><span class="line">        dict *d = db-&gt;dict;</span><br><span class="line">        <span class="comment">// 字典大小为0下个数据库</span></span><br><span class="line">        <span class="keyword">if</span> (dictSize(d) == <span class="number">0</span>) <span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取字典安全迭代器</span></span><br><span class="line">        di = dictGetSafeIterator(d);</span><br><span class="line">        <span class="keyword">if</span> (!di) <span class="keyword">return</span> C_ERR;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Write the SELECT DB opcode */</span></span><br><span class="line">        <span class="comment">// 写入数据库的选择标识码RDB_OPCODE_SELECTDB为254</span></span><br><span class="line">        <span class="keyword">if</span> (rdbSaveType(rdb,RDB_OPCODE_SELECTDB) == <span class="number">-1</span>) <span class="keyword">goto</span> werr;</span><br><span class="line">        <span class="comment">// 写入数据库id，占用一字节长度</span></span><br><span class="line">        <span class="keyword">if</span> (rdbSaveLen(rdb,j) == <span class="number">-1</span>) <span class="keyword">goto</span> werr;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Write the RESIZE DB opcode. We trim the size to UINT32_MAX, which</span></span><br><span class="line"><span class="comment">         * is currently the largest type we are able to represent in RDB sizes.</span></span><br><span class="line"><span class="comment">         * However this does not limit the actual size of the DB to load since</span></span><br><span class="line"><span class="comment">         * these sizes are just hints to resize the hash tables. */</span></span><br><span class="line">        <span class="keyword">uint32_t</span> db_size, expires_size;</span><br><span class="line">        <span class="comment">// 我们将大小限制在UNIT32_MAX，但不代表实际大小，只是用于提示重新调整哈希表大小</span></span><br><span class="line">        <span class="comment">// 计算键值对字典大小</span></span><br><span class="line">        db_size = (dictSize(db-&gt;dict) &lt;= UINT32_MAX) ?</span><br><span class="line">                                dictSize(db-&gt;dict) :</span><br><span class="line">                                UINT32_MAX;</span><br><span class="line">        <span class="comment">// 计算过期字典大小</span></span><br><span class="line">        expires_size = (dictSize(db-&gt;expires) &lt;= UINT32_MAX) ?</span><br><span class="line">                                dictSize(db-&gt;expires) :</span><br><span class="line">                                UINT32_MAX;</span><br><span class="line">        <span class="comment">// 写入哈希表调整嘛RDB_OPCODE_RESIZEDB=251</span></span><br><span class="line">        <span class="keyword">if</span> (rdbSaveType(rdb,RDB_OPCODE_RESIZEDB) == <span class="number">-1</span>) <span class="keyword">goto</span> werr;</span><br><span class="line">        <span class="comment">// 写入键值对字典大小</span></span><br><span class="line">        <span class="keyword">if</span> (rdbSaveLen(rdb,db_size) == <span class="number">-1</span>) <span class="keyword">goto</span> werr;</span><br><span class="line">        <span class="comment">// 写入过期字典大小</span></span><br><span class="line">        <span class="keyword">if</span> (rdbSaveLen(rdb,expires_size) == <span class="number">-1</span>) <span class="keyword">goto</span> werr;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Iterate this DB writing every entry */</span></span><br><span class="line">        <span class="comment">// 遍历键值对字典</span></span><br><span class="line">        <span class="keyword">while</span>((de = dictNext(di)) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="comment">// 键</span></span><br><span class="line">            sds keystr = dictGetKey(de);</span><br><span class="line">            <span class="comment">// 值</span></span><br><span class="line">            robj key, *o = dictGetVal(de);</span><br><span class="line">            <span class="keyword">long</span> <span class="keyword">long</span> expire;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 栈空间中创建一个键对象</span></span><br><span class="line">            initStaticStringObject(key,keystr);</span><br><span class="line">            <span class="comment">// 获取当前键的过期时间</span></span><br><span class="line">            expire = getExpire(db,&amp;key);</span><br><span class="line">            <span class="comment">// 保存键值对和过期时间到RDB</span></span><br><span class="line">            <span class="keyword">if</span> (rdbSaveKeyValuePair(rdb,&amp;key,o,expire) == <span class="number">-1</span>) <span class="keyword">goto</span> werr;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* When this RDB is produced as part of an AOF rewrite, move</span></span><br><span class="line"><span class="comment">             * accumulated diff from parent to child while rewriting in</span></span><br><span class="line"><span class="comment">             * order to have a smaller final write. */</span></span><br><span class="line">            <span class="comment">// 当这个RDB作为AOF重写的一部分生成时，</span></span><br><span class="line">            <span class="comment">// 在重写时移动父进程到子进程的累积差异,</span></span><br><span class="line">            <span class="comment">// 是为了获取更小的写入大小</span></span><br><span class="line">            <span class="keyword">if</span> (flags &amp; RDB_SAVE_AOF_PREAMBLE &amp;&amp;</span><br><span class="line">                rdb-&gt;processed_bytes &gt; processed+AOF_READ_DIFF_INTERVAL_BYTES)</span><br><span class="line">            &#123;</span><br><span class="line">                processed = rdb-&gt;processed_bytes;</span><br><span class="line">                aofReadDiffFromParent();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 释放迭代器</span></span><br><span class="line">        dictReleaseIterator(di);</span><br><span class="line">    &#125;</span><br><span class="line">    di = <span class="literal">NULL</span>; <span class="comment">/* So that we don't release it again on error. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* If we are storing the replication information on disk, persist</span></span><br><span class="line"><span class="comment">     * the script cache as well: on successful PSYNC after a restart, we need</span></span><br><span class="line"><span class="comment">     * to be able to process any EVALSHA inside the replication backlog the</span></span><br><span class="line"><span class="comment">     * master will send us. */</span></span><br><span class="line">    <span class="comment">// 备份服务器的lua脚本</span></span><br><span class="line">    <span class="keyword">if</span> (rsi &amp;&amp; dictSize(server.lua_scripts)) &#123;</span><br><span class="line">        di = dictGetIterator(server.lua_scripts);</span><br><span class="line">        <span class="keyword">while</span>((de = dictNext(di)) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            robj *body = dictGetVal(de);</span><br><span class="line">            <span class="keyword">if</span> (rdbSaveAuxField(rdb,<span class="string">"lua"</span>,<span class="number">3</span>,body-&gt;ptr,sdslen(body-&gt;ptr)) == <span class="number">-1</span>)</span><br><span class="line">                <span class="keyword">goto</span> werr;</span><br><span class="line">        &#125;</span><br><span class="line">        dictReleaseIterator(di);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* EOF opcode */</span></span><br><span class="line">    <span class="comment">// 结束标识符RDB_OPCODE_EOF=255</span></span><br><span class="line">    <span class="keyword">if</span> (rdbSaveType(rdb,RDB_OPCODE_EOF) == <span class="number">-1</span>) <span class="keyword">goto</span> werr;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* CRC64 checksum. It will be zero if checksum computation is disabled, the</span></span><br><span class="line"><span class="comment">     * loading code skips the check in this case. */</span></span><br><span class="line">    <span class="comment">// CRC64校验和. 校验和计算未开启时为0，加载RDB文件时会跳过</span></span><br><span class="line">    cksum = rdb-&gt;cksum;</span><br><span class="line">    memrev64ifbe(&amp;cksum);</span><br><span class="line">    <span class="keyword">if</span> (rioWrite(rdb,&amp;cksum,<span class="number">8</span>) == <span class="number">0</span>) <span class="keyword">goto</span> werr;</span><br><span class="line">    <span class="keyword">return</span> C_OK;</span><br><span class="line"></span><br><span class="line">werr:</span><br><span class="line">    <span class="keyword">if</span> (error) *error = errno;</span><br><span class="line">    <span class="keyword">if</span> (di) dictReleaseIterator(di);</span><br><span class="line">    <span class="keyword">return</span> C_ERR;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>RDB读取实现</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">rdbLoadRio</span><span class="params">(rio *rdb, rdbSaveInfo *rsi, <span class="keyword">int</span> loading_aof)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">uint64_t</span> dbid;</span><br><span class="line">    <span class="keyword">int</span> type, rdbver;</span><br><span class="line">    redisDb *db = server.db+<span class="number">0</span>;</span><br><span class="line">    <span class="keyword">char</span> buf[<span class="number">1024</span>];</span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> expiretime, now = mstime();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置计算校验和函数</span></span><br><span class="line">    rdb-&gt;update_cksum = rdbLoadProgressCallback;</span><br><span class="line">    <span class="comment">// 设置加载读或写的最大字节数</span></span><br><span class="line">    rdb-&gt;max_processing_chunk = server.loading_process_events_interval_bytes;</span><br><span class="line">    <span class="comment">// 读取9字节，buf中保存redis版本信息"redis0001"</span></span><br><span class="line">    <span class="keyword">if</span> (rioRead(rdb,buf,<span class="number">9</span>) == <span class="number">0</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line">    buf[<span class="number">9</span>] = <span class="string">'\0'</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">memcmp</span>(buf,<span class="string">"REDIS"</span>,<span class="number">5</span>) != <span class="number">0</span>) &#123;</span><br><span class="line">        serverLog(LL_WARNING,<span class="string">"Wrong signature trying to load DB from file"</span>);</span><br><span class="line">        errno = EINVAL;</span><br><span class="line">        <span class="keyword">return</span> C_ERR;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// redis版本</span></span><br><span class="line">    rdbver = atoi(buf+<span class="number">5</span>);</span><br><span class="line">    <span class="keyword">if</span> (rdbver &lt; <span class="number">1</span> || rdbver &gt; RDB_VERSION) &#123;</span><br><span class="line">        serverLog(LL_WARNING,<span class="string">"Can't handle RDB format version %d"</span>,rdbver);</span><br><span class="line">        errno = EINVAL;</span><br><span class="line">        <span class="keyword">return</span> C_ERR;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 读取RDB文件</span></span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">        robj *key, *val;</span><br><span class="line">        expiretime = <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Read type. */</span></span><br><span class="line">        <span class="comment">// 读取类型</span></span><br><span class="line">        <span class="keyword">if</span> ((type = rdbLoadType(rdb)) == <span class="number">-1</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Handle special types. */</span></span><br><span class="line">        <span class="comment">// 处理特殊类型</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 过期时间类型</span></span><br><span class="line">        <span class="keyword">if</span> (type == RDB_OPCODE_EXPIRETIME) &#123;</span><br><span class="line">            <span class="comment">/* EXPIRETIME: load an expire associated with the next key</span></span><br><span class="line"><span class="comment">             * to load. Note that after loading an expire we need to</span></span><br><span class="line"><span class="comment">             * load the actual type, and continue. */</span></span><br><span class="line">            <span class="comment">// 读取过期时间</span></span><br><span class="line">            <span class="keyword">if</span> ((expiretime = rdbLoadTime(rdb)) == <span class="number">-1</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line">            <span class="comment">/* We read the time so we need to read the object type again. */</span></span><br><span class="line">            <span class="comment">// 读取下一个键值对类型</span></span><br><span class="line">            <span class="keyword">if</span> ((type = rdbLoadType(rdb)) == <span class="number">-1</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line">            <span class="comment">/* the EXPIRETIME opcode specifies time in seconds, so convert</span></span><br><span class="line"><span class="comment">             * into milliseconds. */</span></span><br><span class="line">            <span class="comment">// 转换为毫秒</span></span><br><span class="line">            expiretime *= <span class="number">1000</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 过期时间毫秒类型</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (type == RDB_OPCODE_EXPIRETIME_MS) &#123;</span><br><span class="line">            <span class="comment">/* EXPIRETIME_MS: milliseconds precision expire times introduced</span></span><br><span class="line"><span class="comment">             * with RDB v3. Like EXPIRETIME but no with more precision. */</span></span><br><span class="line">            <span class="comment">// 读取过期时间</span></span><br><span class="line">            <span class="keyword">if</span> ((expiretime = rdbLoadMillisecondTime(rdb)) == <span class="number">-1</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line">            <span class="comment">/* We read the time so we need to read the object type again. */</span></span><br><span class="line">            <span class="comment">// 读取下一个键值对类型</span></span><br><span class="line">            <span class="keyword">if</span> ((type = rdbLoadType(rdb)) == <span class="number">-1</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 终止EOF, 读取到则终止循环，表示加载完成</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (type == RDB_OPCODE_EOF) &#123;</span><br><span class="line">            <span class="comment">/* EOF: End of file, exit the main loop. */</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 读取切换数据库操作</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (type == RDB_OPCODE_SELECTDB) &#123;</span><br><span class="line">            <span class="comment">/* SELECTDB: Select the specified database. */</span></span><br><span class="line">            <span class="comment">// 读取数据库id</span></span><br><span class="line">            <span class="keyword">if</span> ((dbid = rdbLoadLen(rdb,<span class="literal">NULL</span>)) == RDB_LENERR)</span><br><span class="line">                <span class="keyword">goto</span> eoferr;</span><br><span class="line">            <span class="comment">// 检查数据库id的合法性</span></span><br><span class="line">            <span class="keyword">if</span> (dbid &gt;= (<span class="keyword">unsigned</span>)server.dbnum) &#123;</span><br><span class="line">                serverLog(LL_WARNING,</span><br><span class="line">                    <span class="string">"FATAL: Data file was created with a Redis "</span></span><br><span class="line">                    <span class="string">"server configured to handle more than %d "</span></span><br><span class="line">                    <span class="string">"databases. Exiting\n"</span>, server.dbnum);</span><br><span class="line">                <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 更换数据库</span></span><br><span class="line">            db = server.db+dbid;</span><br><span class="line">            <span class="keyword">continue</span>; <span class="comment">/* Read type again. */</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">// 读取RESIZEDB操作，重新调整哈希表大小</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (type == RDB_OPCODE_RESIZEDB) &#123;</span><br><span class="line">            <span class="comment">/* RESIZEDB: Hint about the size of the keys in the currently</span></span><br><span class="line"><span class="comment">             * selected data base, in order to avoid useless rehashing. */</span></span><br><span class="line">            <span class="keyword">uint64_t</span> db_size, expires_size;</span><br><span class="line">            <span class="comment">// 读取键值对字典的大小</span></span><br><span class="line">            <span class="keyword">if</span> ((db_size = rdbLoadLen(rdb,<span class="literal">NULL</span>)) == RDB_LENERR)</span><br><span class="line">                <span class="keyword">goto</span> eoferr;</span><br><span class="line">            <span class="comment">// 读取过期字典的大小</span></span><br><span class="line">            <span class="keyword">if</span> ((expires_size = rdbLoadLen(rdb,<span class="literal">NULL</span>)) == RDB_LENERR)</span><br><span class="line">                <span class="keyword">goto</span> eoferr;</span><br><span class="line">            <span class="comment">// 字典扩展</span></span><br><span class="line">            dictExpand(db-&gt;dict,db_size);</span><br><span class="line">            dictExpand(db-&gt;expires,expires_size);</span><br><span class="line">            <span class="keyword">continue</span>; <span class="comment">/* Read type again. */</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">// 读取AUX，辅助信息</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (type == RDB_OPCODE_AUX) &#123;</span><br><span class="line">            <span class="comment">/* AUX: generic string-string fields. Use to add state to RDB</span></span><br><span class="line"><span class="comment">             * which is backward compatible. Implementations of RDB loading</span></span><br><span class="line"><span class="comment">             * are requierd to skip AUX fields they don't understand.</span></span><br><span class="line"><span class="comment">             *</span></span><br><span class="line"><span class="comment">             * An AUX field is composed of two strings: key and value. */</span></span><br><span class="line">            robj *auxkey, *auxval;</span><br><span class="line">            <span class="comment">// 读取辅助字典</span></span><br><span class="line">            <span class="keyword">if</span> ((auxkey = rdbLoadStringObject(rdb)) == <span class="literal">NULL</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line">            <span class="keyword">if</span> ((auxval = rdbLoadStringObject(rdb)) == <span class="literal">NULL</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (((<span class="keyword">char</span>*)auxkey-&gt;ptr)[<span class="number">0</span>] == <span class="string">'%'</span>) &#123;</span><br><span class="line">                <span class="comment">/* All the fields with a name staring with '%' are considered</span></span><br><span class="line"><span class="comment">                 * information fields and are logged at startup with a log</span></span><br><span class="line"><span class="comment">                 * level of NOTICE. */</span></span><br><span class="line">                serverLog(LL_NOTICE,<span class="string">"RDB '%s': %s"</span>,</span><br><span class="line">                    (<span class="keyword">char</span>*)auxkey-&gt;ptr,</span><br><span class="line">                    (<span class="keyword">char</span>*)auxval-&gt;ptr);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(auxkey-&gt;ptr,<span class="string">"repl-stream-db"</span>)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (rsi) rsi-&gt;repl_stream_db = atoi(auxval-&gt;ptr);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(auxkey-&gt;ptr,<span class="string">"repl-id"</span>)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (rsi &amp;&amp; sdslen(auxval-&gt;ptr) == CONFIG_RUN_ID_SIZE) &#123;</span><br><span class="line">                    <span class="built_in">memcpy</span>(rsi-&gt;repl_id,auxval-&gt;ptr,CONFIG_RUN_ID_SIZE+<span class="number">1</span>);</span><br><span class="line">                    rsi-&gt;repl_id_is_set = <span class="number">1</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(auxkey-&gt;ptr,<span class="string">"repl-offset"</span>)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (rsi) rsi-&gt;repl_offset = strtoll(auxval-&gt;ptr,<span class="literal">NULL</span>,<span class="number">10</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!strcasecmp(auxkey-&gt;ptr,<span class="string">"lua"</span>)) &#123;</span><br><span class="line">                <span class="comment">/* Load the script back in memory. */</span></span><br><span class="line">                <span class="keyword">if</span> (luaCreateFunction(<span class="literal">NULL</span>,server.lua,auxval) == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                    rdbExitReportCorruptRDB(</span><br><span class="line">                        <span class="string">"Can't load Lua script from RDB file! "</span></span><br><span class="line">                        <span class="string">"BODY: %s"</span>, auxval-&gt;ptr);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">/* We ignore fields we don't understand, as by AUX field</span></span><br><span class="line"><span class="comment">                 * contract. */</span></span><br><span class="line">                serverLog(LL_DEBUG,<span class="string">"Unrecognized RDB AUX field: '%s'"</span>,</span><br><span class="line">                    (<span class="keyword">char</span>*)auxkey-&gt;ptr);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            decrRefCount(auxkey);</span><br><span class="line">            decrRefCount(auxval);</span><br><span class="line">            <span class="keyword">continue</span>; <span class="comment">/* Read type again. */</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Read key */</span></span><br><span class="line">        <span class="comment">// 读取键对象</span></span><br><span class="line">        <span class="keyword">if</span> ((key = rdbLoadStringObject(rdb)) == <span class="literal">NULL</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line">        <span class="comment">/* Read value */</span></span><br><span class="line">        <span class="comment">// 读取值对象</span></span><br><span class="line">        <span class="keyword">if</span> ((val = rdbLoadObject(type,rdb)) == <span class="literal">NULL</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line">        <span class="comment">/* Check if the key already expired. This function is used when loading</span></span><br><span class="line"><span class="comment">         * an RDB file from disk, either at startup, or when an RDB was</span></span><br><span class="line"><span class="comment">         * received from the master. In the latter case, the master is</span></span><br><span class="line"><span class="comment">         * responsible for key expiry. If we would expire keys here, the</span></span><br><span class="line"><span class="comment">         * snapshot taken by the master may not be reflected on the slave. */</span></span><br><span class="line">        <span class="comment">// 如果是master节点，且已经过期，则释放该键值对</span></span><br><span class="line">        <span class="keyword">if</span> (server.masterhost == <span class="literal">NULL</span> &amp;&amp; !loading_aof &amp;&amp; expiretime != <span class="number">-1</span> &amp;&amp; expiretime &lt; now) &#123;</span><br><span class="line">            decrRefCount(key);</span><br><span class="line">            decrRefCount(val);</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/* Add the new object in the hash table */</span></span><br><span class="line">        <span class="comment">// 添加键值对数据库</span></span><br><span class="line">        dbAdd(db,key,val);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Set the expire time if needed */</span></span><br><span class="line">        <span class="comment">// 设置过期时间</span></span><br><span class="line">        <span class="keyword">if</span> (expiretime != <span class="number">-1</span>) setExpire(<span class="literal">NULL</span>,db,key,expiretime);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 释放临时对象key</span></span><br><span class="line">        decrRefCount(key);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* Verify the checksum if RDB version is &gt;= 5 */</span></span><br><span class="line">    <span class="comment">// redis版本大于5，需要进行校验</span></span><br><span class="line">    <span class="keyword">if</span> (rdbver &gt;= <span class="number">5</span>) &#123;</span><br><span class="line">        <span class="keyword">uint64_t</span> cksum, expected = rdb-&gt;cksum;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (rioRead(rdb,&amp;cksum,<span class="number">8</span>) == <span class="number">0</span>) <span class="keyword">goto</span> eoferr;</span><br><span class="line">        <span class="keyword">if</span> (server.rdb_checksum) &#123;</span><br><span class="line">            memrev64ifbe(&amp;cksum);</span><br><span class="line">            <span class="keyword">if</span> (cksum == <span class="number">0</span>) &#123;</span><br><span class="line">                serverLog(LL_WARNING,<span class="string">"RDB file was saved with checksum disabled: no check performed."</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (cksum != expected) &#123;</span><br><span class="line">                serverLog(LL_WARNING,<span class="string">"Wrong RDB checksum. Aborting now."</span>);</span><br><span class="line">                rdbExitReportCorruptRDB(<span class="string">"RDB CRC error"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> C_OK;</span><br><span class="line"></span><br><span class="line">eoferr: <span class="comment">/* unexpected end of file is handled here with a fatal exit */</span></span><br><span class="line">    serverLog(LL_WARNING,<span class="string">"Short read or OOM loading DB. Unrecoverable error, aborting now."</span>);</span><br><span class="line">    rdbExitReportCorruptRDB(<span class="string">"Unexpected EOF reading RDB file"</span>);</span><br><span class="line">    <span class="keyword">return</span> C_ERR; <span class="comment">/* Just to avoid warning */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>RDB创建一个对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ssize_t</span> rdbSaveObject(rio *rdb, robj *o) &#123;</span><br><span class="line">    <span class="keyword">ssize_t</span> n = <span class="number">0</span>, nwritten = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 字符串对象</span></span><br><span class="line">    <span class="keyword">if</span> (o-&gt;type == OBJ_STRING) &#123;</span><br><span class="line">        <span class="comment">/* Save a string value */</span></span><br><span class="line">        <span class="comment">// 保存字符串对象</span></span><br><span class="line">        <span class="keyword">if</span> ((n = rdbSaveStringObject(rdb,o)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        nwritten += n;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 列表对象</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_LIST) &#123;</span><br><span class="line">        <span class="comment">/* Save a list value */</span></span><br><span class="line">        <span class="comment">// quicklist编码</span></span><br><span class="line">        <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_QUICKLIST) &#123;</span><br><span class="line">            quicklist *ql = o-&gt;ptr;</span><br><span class="line">            quicklistNode *node = ql-&gt;head;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 先保存长度</span></span><br><span class="line">            <span class="keyword">if</span> ((n = rdbSaveLen(rdb,ql-&gt;len)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            nwritten += n;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 然后遍历quicklist中的结点</span></span><br><span class="line">            <span class="keyword">while</span>(node) &#123;</span><br><span class="line">                <span class="comment">// 根据是否压缩分别存储</span></span><br><span class="line">                <span class="keyword">if</span> (quicklistNodeIsCompressed(node)) &#123;</span><br><span class="line">                    <span class="keyword">void</span> *data;</span><br><span class="line">                    <span class="keyword">size_t</span> compress_len = quicklistGetLzf(node, &amp;data);</span><br><span class="line">                    <span class="comment">// 压缩过，则解压后保存二进制数据到rdb</span></span><br><span class="line">                    <span class="keyword">if</span> ((n = rdbSaveLzfBlob(rdb,data,compress_len,node-&gt;sz)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">                    nwritten += n;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="comment">// 未压缩过，则直接保存原始的字符串数据</span></span><br><span class="line">                    <span class="keyword">if</span> ((n = rdbSaveRawString(rdb,node-&gt;zl,node-&gt;sz)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">                    nwritten += n;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">// 下一个结点</span></span><br><span class="line">                node = node-&gt;next;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            serverPanic(<span class="string">"Unknown list encoding"</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 集合对象</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_SET) &#123;</span><br><span class="line">        <span class="comment">/* Save a set value */</span></span><br><span class="line">        <span class="comment">// 哈希表编码</span></span><br><span class="line">        <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_HT) &#123;</span><br><span class="line">            dict *<span class="built_in">set</span> = o-&gt;ptr;</span><br><span class="line">            <span class="comment">// 获取集合对象迭代器</span></span><br><span class="line">            dictIterator *di = dictGetIterator(<span class="built_in">set</span>);</span><br><span class="line">            dictEntry *de;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 保存字典长度到RDB</span></span><br><span class="line">            <span class="keyword">if</span> ((n = rdbSaveLen(rdb,dictSize(<span class="built_in">set</span>))) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            nwritten += n;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 遍历字典</span></span><br><span class="line">            <span class="keyword">while</span>((de = dictNext(di)) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">                <span class="comment">// 获取sds字符串对象</span></span><br><span class="line">                sds ele = dictGetKey(de);</span><br><span class="line">                <span class="comment">// 保存到RDB中</span></span><br><span class="line">                <span class="keyword">if</span> ((n = rdbSaveRawString(rdb,(<span class="keyword">unsigned</span> <span class="keyword">char</span>*)ele,sdslen(ele)))</span><br><span class="line">                    == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">                nwritten += n;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 释放迭代器</span></span><br><span class="line">            dictReleaseIterator(di);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 整数集合编码</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_INTSET) &#123;</span><br><span class="line">            <span class="comment">// 获取整数集合长度</span></span><br><span class="line">            <span class="keyword">size_t</span> l = intsetBlobLen((intset*)o-&gt;ptr);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 保存原始字符串到RDB</span></span><br><span class="line">            <span class="keyword">if</span> ((n = rdbSaveRawString(rdb,o-&gt;ptr,l)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            nwritten += n;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            serverPanic(<span class="string">"Unknown set encoding"</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 有序集合对象</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_ZSET) &#123;</span><br><span class="line">        <span class="comment">/* Save a sorted set value */</span></span><br><span class="line">        <span class="comment">// 压缩列表编码</span></span><br><span class="line">        <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_ZIPLIST) &#123;</span><br><span class="line">            <span class="comment">// 压缩列表长度</span></span><br><span class="line">            <span class="keyword">size_t</span> l = ziplistBlobLen((<span class="keyword">unsigned</span> <span class="keyword">char</span>*)o-&gt;ptr);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 存储到rdb</span></span><br><span class="line">            <span class="keyword">if</span> ((n = rdbSaveRawString(rdb,o-&gt;ptr,l)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            nwritten += n;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">            <span class="comment">// 跳跃表编码</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_SKIPLIST) &#123;</span><br><span class="line">            zset *zs = o-&gt;ptr;</span><br><span class="line">            zskiplist *zsl = zs-&gt;zsl;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 存储跳跃表长度到RDB</span></span><br><span class="line">            <span class="keyword">if</span> ((n = rdbSaveLen(rdb,zsl-&gt;length)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            nwritten += n;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* We save the skiplist elements from the greatest to the smallest</span></span><br><span class="line"><span class="comment">             * (that's trivial since the elements are already ordered in the</span></span><br><span class="line"><span class="comment">             * skiplist): this improves the load process, since the next loaded</span></span><br><span class="line"><span class="comment">             * element will always be the smaller, so adding to the skiplist</span></span><br><span class="line"><span class="comment">             * will always immediately stop at the head, making the insertion</span></span><br><span class="line"><span class="comment">             * O(1) instead of O(log(N)). */</span></span><br><span class="line">            zskiplistNode *zn = zsl-&gt;tail;</span><br><span class="line">            <span class="comment">// 遍历跳跃表</span></span><br><span class="line">            <span class="keyword">while</span> (zn != <span class="literal">NULL</span>) &#123;</span><br><span class="line">                <span class="comment">// 成员ele存储原始字符串到RDB</span></span><br><span class="line">                <span class="keyword">if</span> ((n = rdbSaveRawString(rdb,</span><br><span class="line">                    (<span class="keyword">unsigned</span> <span class="keyword">char</span>*)zn-&gt;ele,sdslen(zn-&gt;ele))) == <span class="number">-1</span>)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                nwritten += n;</span><br><span class="line">                <span class="comment">// 分数score存储二进制double到rdb</span></span><br><span class="line">                <span class="keyword">if</span> ((n = rdbSaveBinaryDoubleValue(rdb,zn-&gt;score)) == <span class="number">-1</span>)</span><br><span class="line">                    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">                nwritten += n;</span><br><span class="line">                zn = zn-&gt;backward;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            serverPanic(<span class="string">"Unknown sorted set encoding"</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 哈希对象</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_HASH) &#123;</span><br><span class="line">        <span class="comment">/* Save a hash value */</span></span><br><span class="line">        <span class="comment">// 压缩列表编码</span></span><br><span class="line">        <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_ZIPLIST) &#123;</span><br><span class="line">            <span class="comment">// 长度</span></span><br><span class="line">            <span class="keyword">size_t</span> l = ziplistBlobLen((<span class="keyword">unsigned</span> <span class="keyword">char</span>*)o-&gt;ptr);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 存储到RDB</span></span><br><span class="line">            <span class="keyword">if</span> ((n = rdbSaveRawString(rdb,o-&gt;ptr,l)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            nwritten += n;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 哈希表编码</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_HT) &#123;</span><br><span class="line">            <span class="comment">// 迭代器</span></span><br><span class="line">            dictIterator *di = dictGetIterator(o-&gt;ptr);</span><br><span class="line">            dictEntry *de;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 保存字典长度到RDB</span></span><br><span class="line">            <span class="keyword">if</span> ((n = rdbSaveLen(rdb,dictSize((dict*)o-&gt;ptr))) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            nwritten += n;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 遍历字典</span></span><br><span class="line">            <span class="keyword">while</span>((de = dictNext(di)) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">                <span class="comment">// 获取成员field</span></span><br><span class="line">                sds field = dictGetKey(de);</span><br><span class="line">                <span class="comment">// 获取值value</span></span><br><span class="line">                sds value = dictGetVal(de);</span><br><span class="line"></span><br><span class="line">                <span class="comment">// 存储field</span></span><br><span class="line">                <span class="keyword">if</span> ((n = rdbSaveRawString(rdb,(<span class="keyword">unsigned</span> <span class="keyword">char</span>*)field,</span><br><span class="line">                        sdslen(field))) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">                nwritten += n;</span><br><span class="line">                <span class="comment">// 存储value</span></span><br><span class="line">                <span class="keyword">if</span> ((n = rdbSaveRawString(rdb,(<span class="keyword">unsigned</span> <span class="keyword">char</span>*)value,</span><br><span class="line">                        sdslen(value))) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">                nwritten += n;</span><br><span class="line">            &#125;</span><br><span class="line">            dictReleaseIterator(di);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            serverPanic(<span class="string">"Unknown hash encoding"</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 模块对象</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (o-&gt;type == OBJ_MODULE) &#123;</span><br><span class="line">        <span class="comment">/* Save a module-specific value. */</span></span><br><span class="line">        RedisModuleIO io;</span><br><span class="line">        moduleValue *mv = o-&gt;ptr;</span><br><span class="line">        moduleType *mt = mv-&gt;type;</span><br><span class="line">        moduleInitIOContext(io,mt,rdb);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Write the "module" identifier as prefix, so that we'll be able</span></span><br><span class="line"><span class="comment">         * to call the right module during loading. */</span></span><br><span class="line">        <span class="keyword">int</span> retval = rdbSaveLen(rdb,mt-&gt;id);</span><br><span class="line">        <span class="keyword">if</span> (retval == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        io.bytes += retval;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Then write the module-specific representation + EOF marker. */</span></span><br><span class="line">        mt-&gt;rdb_save(&amp;io,mv-&gt;value);</span><br><span class="line">        retval = rdbSaveLen(rdb,RDB_MODULE_OPCODE_EOF);</span><br><span class="line">        <span class="keyword">if</span> (retval == <span class="number">-1</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        io.bytes += retval;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (io.ctx) &#123;</span><br><span class="line">            moduleFreeContext(io.ctx);</span><br><span class="line">            zfree(io.ctx);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> io.error ? <span class="number">-1</span> : (<span class="keyword">ssize_t</span>)io.bytes;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        serverPanic(<span class="string">"Unknown object type"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> nwritten;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>RDB读取一个读写</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br><span class="line">324</span><br><span class="line">325</span><br><span class="line">326</span><br><span class="line">327</span><br><span class="line">328</span><br><span class="line">329</span><br><span class="line">330</span><br><span class="line">331</span><br><span class="line">332</span><br><span class="line">333</span><br><span class="line">334</span><br><span class="line">335</span><br><span class="line">336</span><br><span class="line">337</span><br><span class="line">338</span><br><span class="line">339</span><br><span class="line">340</span><br><span class="line">341</span><br><span class="line">342</span><br><span class="line">343</span><br><span class="line">344</span><br><span class="line">345</span><br><span class="line">346</span><br><span class="line">347</span><br><span class="line">348</span><br><span class="line">349</span><br><span class="line">350</span><br><span class="line">351</span><br><span class="line">352</span><br><span class="line">353</span><br><span class="line">354</span><br><span class="line">355</span><br><span class="line">356</span><br><span class="line">357</span><br><span class="line">358</span><br><span class="line">359</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">robj *<span class="title">rdbLoadObject</span><span class="params">(<span class="keyword">int</span> rdbtype, rio *rdb)</span> </span>&#123;</span><br><span class="line">    robj *o = <span class="literal">NULL</span>, *ele, *dec;</span><br><span class="line">    <span class="keyword">uint64_t</span> len;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> i;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 字符串对象</span></span><br><span class="line">    <span class="keyword">if</span> (rdbtype == RDB_TYPE_STRING) &#123;</span><br><span class="line">        <span class="comment">/* Read string value */</span></span><br><span class="line">        <span class="comment">// 读取编码的字符串对象</span></span><br><span class="line">        <span class="keyword">if</span> ((o = rdbLoadEncodedStringObject(rdb)) == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">        <span class="comment">// 优化编码</span></span><br><span class="line">        o = tryObjectEncoding(o);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 列表对象</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rdbtype == RDB_TYPE_LIST) &#123;</span><br><span class="line">        <span class="comment">/* Read list value */</span></span><br><span class="line">        <span class="comment">// 读取列表对象元素个数</span></span><br><span class="line">        <span class="keyword">if</span> ((len = rdbLoadLen(rdb,<span class="literal">NULL</span>)) == RDB_LENERR) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建快速列表</span></span><br><span class="line">        o = createQuicklistObject();</span><br><span class="line">        <span class="comment">// 设置压缩程度和ziplist最大长度</span></span><br><span class="line">        quicklistSetOptions(o-&gt;ptr, server.list_max_ziplist_size,</span><br><span class="line">                            server.list_compress_depth);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Load every single element of the list */</span></span><br><span class="line">        <span class="comment">// 读取len个元素</span></span><br><span class="line">        <span class="keyword">while</span>(len--) &#123;</span><br><span class="line">            <span class="comment">// 读取编码的字符串对象</span></span><br><span class="line">            <span class="keyword">if</span> ((ele = rdbLoadEncodedStringObject(rdb)) == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            <span class="comment">// 解码字符串对象</span></span><br><span class="line">            dec = getDecodedObject(ele);</span><br><span class="line">            <span class="comment">// 获取字符串的长度</span></span><br><span class="line">            <span class="keyword">size_t</span> len = sdslen(dec-&gt;ptr);</span><br><span class="line">            <span class="comment">// 添加读取的字符串对象到quicklist</span></span><br><span class="line">            quicklistPushTail(o-&gt;ptr, dec-&gt;ptr, len);</span><br><span class="line">            <span class="comment">// 释放临时变量</span></span><br><span class="line">            decrRefCount(dec);</span><br><span class="line">            decrRefCount(ele);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 集合对象</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rdbtype == RDB_TYPE_SET) &#123;</span><br><span class="line">        <span class="comment">/* Read Set value */</span></span><br><span class="line">        <span class="comment">// 读取集合对象中元素的个数</span></span><br><span class="line">        <span class="keyword">if</span> ((len = rdbLoadLen(rdb,<span class="literal">NULL</span>)) == RDB_LENERR) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Use a regular set when there are too many entries. */</span></span><br><span class="line">        <span class="comment">// 如果超过最多intset节点数，则创建一个HT编码的集合对象</span></span><br><span class="line">        <span class="keyword">if</span> (len &gt; server.set_max_intset_entries) &#123;</span><br><span class="line">            o = createSetObject();</span><br><span class="line">            <span class="comment">/* It's faster to expand the dict to the right size asap in order</span></span><br><span class="line"><span class="comment">             * to avoid rehashing */</span></span><br><span class="line">            <span class="keyword">if</span> (len &gt; DICT_HT_INITIAL_SIZE)</span><br><span class="line">                dictExpand(o-&gt;ptr,len);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            o = createIntsetObject();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Load every single element of the set */</span></span><br><span class="line">        <span class="comment">// 遍历len个元素</span></span><br><span class="line">        <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; len; i++) &#123;</span><br><span class="line">            <span class="keyword">long</span> <span class="keyword">long</span> llval;</span><br><span class="line">            sds sdsele;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 读取sds字符串</span></span><br><span class="line">            <span class="keyword">if</span> ((sdsele = rdbGenericLoadStringObject(rdb,RDB_LOAD_SDS,<span class="literal">NULL</span>))</span><br><span class="line">                == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// INTSET编码</span></span><br><span class="line">            <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_INTSET) &#123;</span><br><span class="line">                <span class="comment">/* Fetch integer value from element. */</span></span><br><span class="line">                <span class="comment">// 读取整数值，并添加到INTSET</span></span><br><span class="line">                <span class="keyword">if</span> (isSdsRepresentableAsLongLong(sdsele,&amp;llval) == C_OK) &#123;</span><br><span class="line">                    o-&gt;ptr = intsetAdd(o-&gt;ptr,llval,<span class="literal">NULL</span>);</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="comment">// 转换成哈希表</span></span><br><span class="line">                    setTypeConvert(o,OBJ_ENCODING_HT);</span><br><span class="line">                    dictExpand(o-&gt;ptr,len);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* This will also be called when the set was just converted</span></span><br><span class="line"><span class="comment">             * to a regular hash table encoded set. */</span></span><br><span class="line">            <span class="comment">// HT编码则添加到字典中</span></span><br><span class="line">            <span class="keyword">if</span> (o-&gt;encoding == OBJ_ENCODING_HT) &#123;</span><br><span class="line">                dictAdd((dict*)o-&gt;ptr,sdsele,<span class="literal">NULL</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                sdsfree(sdsele);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 有序集合对象</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rdbtype == RDB_TYPE_ZSET_2 || rdbtype == RDB_TYPE_ZSET) &#123;</span><br><span class="line">        <span class="comment">/* Read list/set value. */</span></span><br><span class="line">        <span class="keyword">uint64_t</span> zsetlen;</span><br><span class="line">        <span class="keyword">size_t</span> maxelelen = <span class="number">0</span>;</span><br><span class="line">        zset *zs;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 读取有序集合对象的元素个数</span></span><br><span class="line">        <span class="keyword">if</span> ((zsetlen = rdbLoadLen(rdb,<span class="literal">NULL</span>)) == RDB_LENERR) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">        <span class="comment">// 创建有序集合对象</span></span><br><span class="line">        o = createZsetObject();</span><br><span class="line">        zs = o-&gt;ptr;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Load every single element of the sorted set. */</span></span><br><span class="line">        <span class="comment">// 遍历len个元素</span></span><br><span class="line">        <span class="keyword">while</span>(zsetlen--) &#123;</span><br><span class="line">            sds sdsele;</span><br><span class="line">            <span class="keyword">double</span> score;</span><br><span class="line">            zskiplistNode *znode;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 读取元素的key</span></span><br><span class="line">            <span class="keyword">if</span> ((sdsele = rdbGenericLoadStringObject(rdb,RDB_LOAD_SDS,<span class="literal">NULL</span>))</span><br><span class="line">                == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 读取元素的score</span></span><br><span class="line">            <span class="keyword">if</span> (rdbtype == RDB_TYPE_ZSET_2) &#123;</span><br><span class="line">                <span class="keyword">if</span> (rdbLoadBinaryDoubleValue(rdb,&amp;score) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">if</span> (rdbLoadDoubleValue(rdb,&amp;score) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Don't care about integer-encoded strings. */</span></span><br><span class="line">            <span class="comment">// 保存成员最大长度</span></span><br><span class="line">            <span class="keyword">if</span> (sdslen(sdsele) &gt; maxelelen) maxelelen = sdslen(sdsele);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 当前元素对象插入到跳跃表和字典中</span></span><br><span class="line">            znode = zslInsert(zs-&gt;zsl,score,sdsele);</span><br><span class="line">            dictAdd(zs-&gt;dict,sdsele,&amp;znode-&gt;score);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Convert *after* loading, since sorted sets are not stored ordered. */</span></span><br><span class="line">        <span class="comment">// 尝试编码转换为ziplist，以节省内存空间</span></span><br><span class="line">        <span class="keyword">if</span> (zsetLength(o) &lt;= server.zset_max_ziplist_entries &amp;&amp;</span><br><span class="line">            maxelelen &lt;= server.zset_max_ziplist_value)</span><br><span class="line">                zsetConvert(o,OBJ_ENCODING_ZIPLIST);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 哈希对象</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rdbtype == RDB_TYPE_HASH) &#123;</span><br><span class="line">        <span class="keyword">uint64_t</span> len;</span><br><span class="line">        <span class="keyword">int</span> ret;</span><br><span class="line">        sds field, value;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 读取哈希对象元素个数</span></span><br><span class="line">        len = rdbLoadLen(rdb, <span class="literal">NULL</span>);</span><br><span class="line">        <span class="keyword">if</span> (len == RDB_LENERR) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建redis哈希对象</span></span><br><span class="line">        o = createHashObject();</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Too many entries? Use a hash table. */</span></span><br><span class="line">        <span class="comment">// 如果超过ziplist的最大限制，转换为HT编码</span></span><br><span class="line">        <span class="keyword">if</span> (len &gt; server.hash_max_ziplist_entries)</span><br><span class="line">            hashTypeConvert(o, OBJ_ENCODING_HT);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Load every field and value into the ziplist */</span></span><br><span class="line">        <span class="comment">// 读取元素的field和score存储到ziplist</span></span><br><span class="line">        <span class="keyword">while</span> (o-&gt;encoding == OBJ_ENCODING_ZIPLIST &amp;&amp; len &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            len--;</span><br><span class="line">            <span class="comment">/* Load raw strings */</span></span><br><span class="line">            <span class="comment">// 读取field</span></span><br><span class="line">            <span class="keyword">if</span> ((field = rdbGenericLoadStringObject(rdb,RDB_LOAD_SDS,<span class="literal">NULL</span>))</span><br><span class="line">                == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            <span class="comment">// 读取score</span></span><br><span class="line">            <span class="keyword">if</span> ((value = rdbGenericLoadStringObject(rdb,RDB_LOAD_SDS,<span class="literal">NULL</span>))</span><br><span class="line">                == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Add pair to ziplist */</span></span><br><span class="line">            <span class="comment">// 存储field和score到ziplist</span></span><br><span class="line">            o-&gt;ptr = ziplistPush(o-&gt;ptr, (<span class="keyword">unsigned</span> <span class="keyword">char</span>*)field,</span><br><span class="line">                    sdslen(field), ZIPLIST_TAIL);</span><br><span class="line">            o-&gt;ptr = ziplistPush(o-&gt;ptr, (<span class="keyword">unsigned</span> <span class="keyword">char</span>*)value,</span><br><span class="line">                    sdslen(value), ZIPLIST_TAIL);</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Convert to hash table if size threshold is exceeded */</span></span><br><span class="line">            <span class="comment">// 如果超过的ziplist的限制，转换为HT编码</span></span><br><span class="line">            <span class="keyword">if</span> (sdslen(field) &gt; server.hash_max_ziplist_value ||</span><br><span class="line">                sdslen(value) &gt; server.hash_max_ziplist_value)</span><br><span class="line">            &#123;</span><br><span class="line">                sdsfree(field);</span><br><span class="line">                sdsfree(value);</span><br><span class="line">                hashTypeConvert(o, OBJ_ENCODING_HT);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 释放field,value</span></span><br><span class="line">            sdsfree(field);</span><br><span class="line">            sdsfree(value);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Load remaining fields and values into the hash table */</span></span><br><span class="line">        <span class="comment">// HT编码，读取field和value存储到哈希表</span></span><br><span class="line">        <span class="keyword">while</span> (o-&gt;encoding == OBJ_ENCODING_HT &amp;&amp; len &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            len--;</span><br><span class="line">            <span class="comment">/* Load encoded strings */</span></span><br><span class="line">            <span class="comment">// 读取field和score</span></span><br><span class="line">            <span class="keyword">if</span> ((field = rdbGenericLoadStringObject(rdb,RDB_LOAD_SDS,<span class="literal">NULL</span>))</span><br><span class="line">                == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            <span class="keyword">if</span> ((value = rdbGenericLoadStringObject(rdb,RDB_LOAD_SDS,<span class="literal">NULL</span>))</span><br><span class="line">                == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Add pair to hash table */</span></span><br><span class="line">            <span class="comment">// 存储到字典中</span></span><br><span class="line">            ret = dictAdd((dict*)o-&gt;ptr, field, value);</span><br><span class="line">            <span class="keyword">if</span> (ret == DICT_ERR) &#123;</span><br><span class="line">                rdbExitReportCorruptRDB(<span class="string">"Duplicate keys detected"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* All pairs should be read by now */</span></span><br><span class="line">        serverAssert(len == <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// QUICKLIST类型的列表</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rdbtype == RDB_TYPE_LIST_QUICKLIST) &#123;</span><br><span class="line">        <span class="comment">// 读取quicklist结点个数</span></span><br><span class="line">        <span class="keyword">if</span> ((len = rdbLoadLen(rdb,<span class="literal">NULL</span>)) == RDB_LENERR) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建一个quicklist编码的列表对象</span></span><br><span class="line">        o = createQuicklistObject();</span><br><span class="line">        <span class="comment">// 设置压缩程度和ziplist的最大长度</span></span><br><span class="line">        quicklistSetOptions(o-&gt;ptr, server.list_max_ziplist_size,</span><br><span class="line">                            server.list_compress_depth);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 读取len个元素结点</span></span><br><span class="line">        <span class="keyword">while</span> (len--) &#123;</span><br><span class="line">            <span class="comment">// 读取一个quicklistNode结点的ziplist地址</span></span><br><span class="line">            <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl =</span><br><span class="line">                rdbGenericLoadStringObject(rdb,RDB_LOAD_PLAIN,<span class="literal">NULL</span>);</span><br><span class="line">            <span class="keyword">if</span> (zl == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            <span class="comment">// 添加ziplist到快速列表结点，然后将快速列表结点添加到quicklist中</span></span><br><span class="line">            quicklistAppendZiplist(o-&gt;ptr, zl);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 其他一些类型编码</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rdbtype == RDB_TYPE_HASH_ZIPMAP  ||</span><br><span class="line">               rdbtype == RDB_TYPE_LIST_ZIPLIST ||</span><br><span class="line">               rdbtype == RDB_TYPE_SET_INTSET   ||</span><br><span class="line">               rdbtype == RDB_TYPE_ZSET_ZIPLIST ||</span><br><span class="line">               rdbtype == RDB_TYPE_HASH_ZIPLIST)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 读取字符串值</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *encoded =</span><br><span class="line">            rdbGenericLoadStringObject(rdb,RDB_LOAD_PLAIN,<span class="literal">NULL</span>);</span><br><span class="line">        <span class="keyword">if</span> (encoded == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建字符串对象</span></span><br><span class="line">        o = createObject(OBJ_STRING,encoded); <span class="comment">/* Obj type fixed below. */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Fix the object encoding, and make sure to convert the encoded</span></span><br><span class="line"><span class="comment">         * data type into the base type if accordingly to the current</span></span><br><span class="line"><span class="comment">         * configuration there are too many elements in the encoded data</span></span><br><span class="line"><span class="comment">         * type. Note that we only check the length and not max element</span></span><br><span class="line"><span class="comment">         * size as this is an O(N) scan. Eventually everything will get</span></span><br><span class="line"><span class="comment">         * converted. */</span></span><br><span class="line">        <span class="comment">// 更加读取编码类型，读取其value，并转化为原来的编码对象</span></span><br><span class="line">        <span class="keyword">switch</span>(rdbtype) &#123;</span><br><span class="line">            <span class="keyword">case</span> RDB_TYPE_HASH_ZIPMAP: <span class="comment">// 压缩字典，已经不再使用</span></span><br><span class="line">                <span class="comment">/* Convert to ziplist encoded hash. This must be deprecated</span></span><br><span class="line"><span class="comment">                 * when loading dumps created by Redis 2.4 gets deprecated. */</span></span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl = ziplistNew();</span><br><span class="line">                    <span class="keyword">unsigned</span> <span class="keyword">char</span> *zi = zipmapRewind(o-&gt;ptr);</span><br><span class="line">                    <span class="keyword">unsigned</span> <span class="keyword">char</span> *fstr, *vstr;</span><br><span class="line">                    <span class="keyword">unsigned</span> <span class="keyword">int</span> flen, vlen;</span><br><span class="line">                    <span class="keyword">unsigned</span> <span class="keyword">int</span> maxlen = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">while</span> ((zi = zipmapNext(zi, &amp;fstr, &amp;flen, &amp;vstr, &amp;vlen)) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">                        <span class="keyword">if</span> (flen &gt; maxlen) maxlen = flen;</span><br><span class="line">                        <span class="keyword">if</span> (vlen &gt; maxlen) maxlen = vlen;</span><br><span class="line">                        zl = ziplistPush(zl, fstr, flen, ZIPLIST_TAIL);</span><br><span class="line">                        zl = ziplistPush(zl, vstr, vlen, ZIPLIST_TAIL);</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    zfree(o-&gt;ptr);</span><br><span class="line">                    o-&gt;ptr = zl;</span><br><span class="line">                    o-&gt;type = OBJ_HASH;</span><br><span class="line">                    o-&gt;encoding = OBJ_ENCODING_ZIPLIST;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">if</span> (hashTypeLength(o) &gt; server.hash_max_ziplist_entries ||</span><br><span class="line">                        maxlen &gt; server.hash_max_ziplist_value)</span><br><span class="line">                    &#123;</span><br><span class="line">                        hashTypeConvert(o, OBJ_ENCODING_HT);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> RDB_TYPE_LIST_ZIPLIST: <span class="comment">// ZIPLIST编码的列表对象</span></span><br><span class="line">                o-&gt;type = OBJ_LIST;</span><br><span class="line">                o-&gt;encoding = OBJ_ENCODING_ZIPLIST;</span><br><span class="line">                listTypeConvert(o,OBJ_ENCODING_QUICKLIST);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> RDB_TYPE_SET_INTSET: <span class="comment">// INTSET编码的集合对象</span></span><br><span class="line">                o-&gt;type = OBJ_SET;</span><br><span class="line">                o-&gt;encoding = OBJ_ENCODING_INTSET;</span><br><span class="line">                <span class="keyword">if</span> (intsetLen(o-&gt;ptr) &gt; server.set_max_intset_entries)</span><br><span class="line">                    setTypeConvert(o,OBJ_ENCODING_HT);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> RDB_TYPE_ZSET_ZIPLIST: <span class="comment">// ZIPLIST编码的有序集合对象</span></span><br><span class="line">                o-&gt;type = OBJ_ZSET;</span><br><span class="line">                o-&gt;encoding = OBJ_ENCODING_ZIPLIST;</span><br><span class="line">                <span class="keyword">if</span> (zsetLength(o) &gt; server.zset_max_ziplist_entries)</span><br><span class="line">                    zsetConvert(o,OBJ_ENCODING_SKIPLIST);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> RDB_TYPE_HASH_ZIPLIST: <span class="comment">// ZIPLIST编码的哈希对象</span></span><br><span class="line">                o-&gt;type = OBJ_HASH;</span><br><span class="line">                o-&gt;encoding = OBJ_ENCODING_ZIPLIST;</span><br><span class="line">                <span class="keyword">if</span> (hashTypeLength(o) &gt; server.hash_max_ziplist_entries)</span><br><span class="line">                    hashTypeConvert(o, OBJ_ENCODING_HT);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">default</span>:</span><br><span class="line">                rdbExitReportCorruptRDB(<span class="string">"Unknown RDB encoding type %d"</span>,rdbtype);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// MODULE类型</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rdbtype == RDB_TYPE_MODULE || rdbtype == RDB_TYPE_MODULE_2) &#123;</span><br><span class="line">        <span class="keyword">uint64_t</span> moduleid = rdbLoadLen(rdb,<span class="literal">NULL</span>);</span><br><span class="line">        moduleType *mt = moduleTypeLookupModuleByID(moduleid);</span><br><span class="line">        <span class="keyword">char</span> name[<span class="number">10</span>];</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (rdbCheckMode &amp;&amp; rdbtype == RDB_TYPE_MODULE_2)</span><br><span class="line">            <span class="keyword">return</span> rdbLoadCheckModuleValue(rdb,name);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (mt == <span class="literal">NULL</span>) &#123;</span><br><span class="line">            moduleTypeNameByID(name,moduleid);</span><br><span class="line">            serverLog(LL_WARNING,<span class="string">"The RDB file contains module data I can't load: no matching module '%s'"</span>, name);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        RedisModuleIO io;</span><br><span class="line">        moduleInitIOContext(io,mt,rdb);</span><br><span class="line">        io.ver = (rdbtype == RDB_TYPE_MODULE) ? <span class="number">1</span> : <span class="number">2</span>;</span><br><span class="line">        <span class="comment">/* Call the rdb_load method of the module providing the 10 bit</span></span><br><span class="line"><span class="comment">         * encoding version in the lower 10 bits of the module ID. */</span></span><br><span class="line">        <span class="keyword">void</span> *ptr = mt-&gt;rdb_load(&amp;io,moduleid&amp;<span class="number">1023</span>);</span><br><span class="line">        <span class="keyword">if</span> (io.ctx) &#123;</span><br><span class="line">            moduleFreeContext(io.ctx);</span><br><span class="line">            zfree(io.ctx);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Module v2 serialization has an EOF mark at the end. */</span></span><br><span class="line">        <span class="keyword">if</span> (io.ver == <span class="number">2</span>) &#123;</span><br><span class="line">            <span class="keyword">uint64_t</span> eof = rdbLoadLen(rdb,<span class="literal">NULL</span>);</span><br><span class="line">            <span class="keyword">if</span> (eof != RDB_MODULE_OPCODE_EOF) &#123;</span><br><span class="line">                serverLog(LL_WARNING,<span class="string">"The RDB file contains module data for the module '%s' that is not terminated by the proper module value EOF marker"</span>, name);</span><br><span class="line">                <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (ptr == <span class="literal">NULL</span>) &#123;</span><br><span class="line">            moduleTypeNameByID(name,moduleid);</span><br><span class="line">            serverLog(LL_WARNING,<span class="string">"The RDB file contains module data for the module type '%s', that the responsible module is not able to load. Check for modules log above for additional clues."</span>, name);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        o = createModuleObject(mt,ptr);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        rdbExitReportCorruptRDB(<span class="string">"Unknown RDB encoding type %d"</span>,rdbtype);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/29/redis/15_Redis数据库/" rel="next" title="Redis源码阅读(十五) 数据库对象">
+                <i class="fa fa-chevron-left"></i> Redis源码阅读(十五) 数据库对象
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/09/05/redis/17_AOF持久化/" rel="prev" title="Redis源码阅读(十七) AOF持久化">
+                Redis源码阅读(十七) AOF持久化 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-RDB文件"><span class="nav-number">1.</span> <span class="nav-text">1. RDB文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-RDB文件结构"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 RDB文件结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-database数据区域部分"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 database数据区域部分</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-键值对数据区域"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 键值对数据区域</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-RDB文件的创建"><span class="nav-number">2.</span> <span class="nav-text">2. RDB文件的创建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-RDB文件的加载"><span class="nav-number">3.</span> <span class="nav-text">3. RDB文件的加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-number">4.</span> <span class="nav-text">4. 源码剖析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

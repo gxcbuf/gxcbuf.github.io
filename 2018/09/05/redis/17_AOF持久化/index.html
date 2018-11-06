@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="Redis除了RDB持久化外，还提供了AOF持久化，AOF持久化通过保存Redis服务端执行的命令来记录数据库状态。 1. AOF文件1234567// AOF内容格式命令个数: *&amp;lt;count&amp;gt;\r\n命令内容: $&amp;lt;length&amp;gt;\r\n&amp;lt;content&amp;gt;\r\n如 &quot;SET hello world&quot; 指令, count表示命令个数为3，length表示当前">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码阅读(十七) AOF持久化">
+<meta property="og:url" content="http://gxcbuf.github.io/2018/09/05/redis/17_AOF持久化/index.html">
+<meta property="og:site_name" content="孰能生巧">
+<meta property="og:description" content="Redis除了RDB持久化外，还提供了AOF持久化，AOF持久化通过保存Redis服务端执行的命令来记录数据库状态。 1. AOF文件1234567// AOF内容格式命令个数: *&amp;lt;count&amp;gt;\r\n命令内容: $&amp;lt;length&amp;gt;\r\n&amp;lt;content&amp;gt;\r\n如 &quot;SET hello world&quot; 指令, count表示命令个数为3，length表示当前">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-09-05T07:53:24.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis源码阅读(十七) AOF持久化">
+<meta name="twitter:description" content="Redis除了RDB持久化外，还提供了AOF持久化，AOF持久化通过保存Redis服务端执行的命令来记录数据库状态。 1. AOF文件1234567// AOF内容格式命令个数: *&amp;lt;count&amp;gt;\r\n命令内容: $&amp;lt;length&amp;gt;\r\n&amp;lt;content&amp;gt;\r\n如 &quot;SET hello world&quot; 指令, count表示命令个数为3，length表示当前">
+
+
+
+
+
+
+  <link rel="canonical" href="http://gxcbuf.github.io/2018/09/05/redis/17_AOF持久化/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis源码阅读(十七) AOF持久化 | 孰能生巧</title>
+  
+
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?4aa8d6634642cbec4e6c0dd1c9f3ef00";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">孰能生巧</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Practice makes Perfect.</p>
+      
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+    <a href="/about/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-user"></i> <br />关于</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://gxcbuf.github.io/2018/09/05/redis/17_AOF持久化/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="郭欣成">
+      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="image" content="/images/gxcbuf.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孰能生巧">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis源码阅读(十七) AOF持久化
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-09-05 15:53:22 / 修改时间：15:53:24" itemprop="dateCreated datePublished" datetime="2018-09-05T15:53:22+08:00">2018-09-05</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/源码阅读/" itemprop="url" rel="index"><span itemprop="name">源码阅读</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Redis除了RDB持久化外，还提供了AOF持久化，AOF持久化通过保存Redis服务端执行的命令来记录数据库状态。</p>
+<h3 id="1-AOF文件"><a href="#1-AOF文件" class="headerlink" title="1. AOF文件"></a>1. AOF文件</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// AOF内容格式</span></span><br><span class="line">命令个数: *&lt;count&gt;\r\n</span><br><span class="line">命令内容: $&lt;length&gt;\r\n&lt;content&gt;\r\n</span><br><span class="line"></span><br><span class="line">如 <span class="string">"SET hello world"</span> 指令, count表示命令个数为<span class="number">3</span>，length表示当前命令的长度</span><br><span class="line"><span class="string">"*3\r\n$3\r\nSET\r\n$5\r\nhello\r\n$5\r\nworld\r\n"</span></span><br><span class="line">这样一条SET指令就如上面一样存储。</span><br></pre></td></tr></table></figure>
+<p>Redis服务端存储着AOF相关的一些信息:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">     <span class="comment">/* AOF persistence */</span></span><br><span class="line">    <span class="comment">// 服务器AOF状态</span></span><br><span class="line">    <span class="keyword">int</span> aof_state;                  <span class="comment">/* AOF_(ON|OFF|WAIT_REWRITE) */</span></span><br><span class="line">    <span class="comment">// 服务器AOF的fsync策略</span></span><br><span class="line">    <span class="keyword">int</span> aof_fsync;                  <span class="comment">/* Kind of fsync() policy */</span></span><br><span class="line">    <span class="comment">// 服务器AOF文件名</span></span><br><span class="line">    <span class="keyword">char</span> *aof_filename;             <span class="comment">/* Name of the AOF file */</span></span><br><span class="line">    <span class="comment">// 如果有aof执行，则不进行fsync</span></span><br><span class="line">    <span class="keyword">int</span> aof_no_fsync_on_rewrite;    <span class="comment">/* Don't fsync if a rewrite is in prog. */</span></span><br><span class="line">    <span class="comment">// AOF增长比率，默认100</span></span><br><span class="line">    <span class="keyword">int</span> aof_rewrite_perc;           <span class="comment">/* Rewrite AOF if % growth is &gt; M and... */</span></span><br><span class="line">    <span class="comment">// AOF最小字节数</span></span><br><span class="line">    <span class="keyword">off_t</span> aof_rewrite_min_size;     <span class="comment">/* the AOF file is at least N bytes. */</span></span><br><span class="line">    <span class="comment">// AOF初始字节数</span></span><br><span class="line">    <span class="keyword">off_t</span> aof_rewrite_base_size;    <span class="comment">/* AOF size on latest startup or rewrite. */</span></span><br><span class="line">    <span class="comment">// AOF当前字节数</span></span><br><span class="line">    <span class="keyword">off_t</span> aof_current_size;         <span class="comment">/* AOF current size. */</span></span><br><span class="line">    <span class="comment">// AOF重写提上日程，BGSAVE完成立即执行</span></span><br><span class="line">    <span class="keyword">int</span> aof_rewrite_scheduled;      <span class="comment">/* Rewrite once BGSAVE terminates. */</span></span><br><span class="line">    <span class="comment">// AOF子进程pid</span></span><br><span class="line">    <span class="keyword">pid_t</span> aof_child_pid;            <span class="comment">/* PID if rewriting process */</span></span><br><span class="line">    <span class="comment">// AOF缓冲区链表</span></span><br><span class="line">    <span class="built_in">list</span> *aof_rewrite_buf_blocks;   <span class="comment">/* Hold changes during an AOF rewrite. */</span></span><br><span class="line">    <span class="comment">// AOF缓冲区</span></span><br><span class="line">    sds aof_buf;      <span class="comment">/* AOF buffer, written before entering the event loop */</span></span><br><span class="line">    <span class="comment">// AOF文件描述符</span></span><br><span class="line">    <span class="keyword">int</span> aof_fd;       <span class="comment">/* File descriptor of currently selected AOF file */</span></span><br><span class="line">    <span class="comment">// AOF选中的db</span></span><br><span class="line">    <span class="keyword">int</span> aof_selected_db; <span class="comment">/* Currently selected DB in AOF */</span></span><br><span class="line">    <span class="comment">// 延迟执行flush操作的开始时间</span></span><br><span class="line">    <span class="keyword">time_t</span> aof_flush_postponed_start; <span class="comment">/* UNIX time of postponed AOF flush */</span></span><br><span class="line">    <span class="comment">// 最后一次fsync的直接</span></span><br><span class="line">    <span class="keyword">time_t</span> aof_last_fsync;            <span class="comment">/* UNIX time of last fsync() */</span></span><br><span class="line">    <span class="comment">// AOF执行最后时间</span></span><br><span class="line">    <span class="keyword">time_t</span> aof_rewrite_time_last;   <span class="comment">/* Time used by last AOF rewrite run. */</span></span><br><span class="line">    <span class="comment">// AOF执行开始时间</span></span><br><span class="line">    <span class="keyword">time_t</span> aof_rewrite_time_start;  <span class="comment">/* Current AOF rewrite start time. */</span></span><br><span class="line">    <span class="comment">// AOF执行的状态</span></span><br><span class="line">    <span class="keyword">int</span> aof_lastbgrewrite_status;   <span class="comment">/* C_OK or C_ERR */</span></span><br><span class="line">    <span class="comment">// 延迟fsync的次数</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> aof_delayed_fsync;  <span class="comment">/* delayed AOF fsync() counter */</span></span><br><span class="line">    <span class="comment">// 重写时是否开启增量式同步，每次写入AOF_AUTOSYNC_BYTES个字节，就执行一次同步</span></span><br><span class="line">    <span class="keyword">int</span> aof_rewrite_incremental_fsync;<span class="comment">/* fsync incrementally while rewriting? */</span></span><br><span class="line">    <span class="comment">// 上一次AOF操作状态</span></span><br><span class="line">    <span class="keyword">int</span> aof_last_write_status;      <span class="comment">/* C_OK or C_ERR */</span></span><br><span class="line">    <span class="comment">// 删一次AOF操作错误</span></span><br><span class="line">    <span class="keyword">int</span> aof_last_write_errno;       <span class="comment">/* Valid if aof_last_write_status is ERR */</span></span><br><span class="line">    <span class="keyword">int</span> aof_load_truncated;         <span class="comment">/* Don't stop on unexpected AOF EOF. */</span></span><br><span class="line">    <span class="keyword">int</span> aof_use_rdb_preamble;       <span class="comment">/* Use RDB preamble on AOF rewrites. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* AOF pipes used to communicate between parent and child during rewrite. */</span></span><br><span class="line">    <span class="comment">// 进程通信文件描述描述符，管道</span></span><br><span class="line">    <span class="keyword">int</span> aof_pipe_write_data_to_child;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_read_data_from_parent;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_write_ack_to_parent;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_read_ack_from_child;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_write_ack_to_child;</span><br><span class="line">    <span class="keyword">int</span> aof_pipe_read_ack_from_parent;</span><br><span class="line">    <span class="keyword">int</span> aof_stop_sending_diff;     <span class="comment">/* If true stop sending accumulated diffs</span></span><br><span class="line"><span class="comment">                                      to child process. */</span></span><br><span class="line">    <span class="comment">// 保存子进程AOF时累积数据的sds</span></span><br><span class="line">    sds aof_child_diff;             <span class="comment">/* AOF diff accumulator child side. */</span></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-AOF持久化"><a href="#2-AOF持久化" class="headerlink" title="2. AOF持久化"></a>2. AOF持久化</h3><p>AOF持久化功能分为追加、写入文件、同步磁盘三个步骤。</p>
+<h4 id="2-1-命令追加"><a href="#2-1-命令追加" class="headerlink" title="2.1 命令追加"></a>2.1 命令追加</h4><p>当Redis服务器AOF功能开启情况下，服务器执行完一条写命令之后，会将该条命令以AOF格式追加到服务器的AOF缓冲区中。</p>
+<ol>
+<li>判断追加命令是否为当前选中数据库，如果不是，则追加SELECT指令</li>
+<li>根据不同命令类型分别进行处理，生成AOF格式内容</li>
+<li>AOF开启状态，将追加到server.aof_buf服务器AOF缓冲区中</li>
+<li>如果有AOF子进程正在进行，那么也追加到AOF重写缓冲区中</li>
+</ol>
+<h4 id="2-2-写入文件和同步磁盘"><a href="#2-2-写入文件和同步磁盘" class="headerlink" title="2.2 写入文件和同步磁盘"></a>2.2 写入文件和同步磁盘</h4><p>Redis服务器进程是一个事件循环，文件事件负责接收客户端的命令请求，以及回复客户端，而时间事件负责执行定时任务，服务器在每次结束事件循环之前，会调用flushAppendOnlyFile函数，判断是否将AOF缓冲区内容写入到AOF文件中。</p>
+<p>AOF缓冲区内容写入到文件后是否进行AOF同步有三种策略：</p>
+<table>
+<thead>
+<tr>
+<th>aof_fsync选项</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AOF_FSYNC_NO</td>
+<td>目前为未使用，表示不手动执行fsync，等待操作系统执行</td>
+</tr>
+<tr>
+<td>AOF_FSYNC_ALWAYS</td>
+<td>立即同步到磁盘。</td>
+</tr>
+<tr>
+<td>AOF_FSYNC_EVERYSEC</td>
+<td>每秒同步一次，该策略下如果后台后fsync执行，那么我们延迟flush操作，最多延迟2秒钟。因为linux上的write(2)操作会被后台的fsync阻塞。</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>为了提高文件写入效率，用于调用write函数写入文件时，会将数据写入到内存缓冲区，等待缓冲区被填满或手动执行同步时，才会将内容中同步到磁盘中。</p>
+</blockquote>
+<h3 id="3-AOF载入"><a href="#3-AOF载入" class="headerlink" title="3. AOF载入"></a>3. AOF载入</h3><p>AOF文件中保存了服务端执行的命令，所以只要执行这些命令，那么服务器的状态就可以被还原。</p>
+<ol>
+<li>创建一个不带网络连接的伪客户端，因为Redis命令只能在客户端中执行</li>
+<li>循环从AOF文件中读取并解析指令，并在伪客户端中执行</li>
+</ol>
+<p>执行完AOF命令，服务器就还原到了之前的状态。</p>
+<blockquote>
+<p>服务器在AOF载入阶段，会间歇性处理网络客户端发送的请求，能执行的只有PUBSUB等指令</p>
+</blockquote>
+<h3 id="4-AOF重写"><a href="#4-AOF重写" class="headerlink" title="4. AOF重写"></a>4. AOF重写</h3><p>AOF持久化是通过保存命令来记录数据库状态，但随着运行时间的延迟，指令的数量会越来越大，而AOF文件体积随着也会变得很大，所以我们通过AOF重写，来减小AOF文件的大小。AOF重写是检查当前数据状态，然后生成新的指令，写入到AOF文件，以这种方式来减少命令数量。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 客户端执行以下命令</span></span><br><span class="line">redis&gt; RPUSH list 1 2</span><br><span class="line">redis&gt; RPUSH list 3 4</span><br><span class="line">redis&gt; RPUSH list 5 6</span><br><span class="line">redis&gt; RPUSH list 7 8	<span class="comment"># 1, 2, 3, 4, 5, 6, 7, 8</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># AOF重写生成指令</span></span><br><span class="line">RPUSH list 1 2 3 4 5 6 7 8</span><br></pre></td></tr></table></figure>
+<p>如果按照普通AOF保存，那么需要保存4条指令，而读取数据库状态后生产新的则只需要一条指令。</p>
+<p>AOF重写会进行大量的写操作，所以调用这个函数会阻塞当前线程，而Redis使用单线程处理命令请求，所以AOF重写任务由创建新的子进程执行，这样子进程AOF重写期间，父进程仍然可以处理客户端请求。但这样也会存在一个问题，子进程执行AOF重写期间，父进程会处理请求，这会导致数据库不一致情况发生。</p>
+<p>为了解决这种不一致，Redis服务器设置了一个AOF重写缓冲区，当redis服务器执行完命令后，会将这条命令写入AOF缓冲区和AOF重写缓冲区。当子进程AOF重写完成后，向父进程发送一个信号，父进程接收到该信号会调用信号处理函数，将AOF重写缓冲区中的所有内容写入到子进程处理的AOF文件中，这时新AOF文件保存的数据库状态与当前服务器一致。</p>
+<ol>
+<li><p>用户调用BGREWRITEAOF</p>
+</li>
+<li><p>Redis调用rewriteAppendOnlyFileBackground()函数fork子进程</p>
+<p>a. 子进程在临时文件中进行AOF重写</p>
+<p>b. 父进程累积计算差异，追加到AOF重写缓冲区server.aof_rewrite_buf</p>
+</li>
+<li><p>2a完成后，子进程退出</p>
+</li>
+<li><p>父进程捕捉子进程信号，将AOF重新缓冲区中记录的差异追加到临时文件，临时文件改名替换真正的AOF文件。</p>
+</li>
+</ol>
+<h3 id="5-源码剖析"><a href="#5-源码剖析" class="headerlink" title="5. 源码剖析"></a>5. 源码剖析</h3><ul>
+<li>加载AOF文件</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">loadAppendOnlyFile</span><span class="params">(<span class="keyword">char</span> *filename)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">client</span> *<span class="title">fakeClient</span>;</span></span><br><span class="line">    FILE *fp = fopen(filename,<span class="string">"r"</span>);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">redis_stat</span> <span class="title">sb</span>;</span></span><br><span class="line">    <span class="keyword">int</span> old_aof_state = server.aof_state;</span><br><span class="line">    <span class="keyword">long</span> loops = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">off_t</span> valid_up_to = <span class="number">0</span>; <span class="comment">/* Offset of latest well-formed command loaded. */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (fp == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        serverLog(LL_WARNING,<span class="string">"Fatal error: can't open the append log file for reading: %s"</span>,strerror(errno));</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Handle a zero-length AOF file as a special case. An emtpy AOF file</span></span><br><span class="line"><span class="comment">     * is a valid AOF because an empty server with AOF enabled will create</span></span><br><span class="line"><span class="comment">     * a zero length file at startup, that will remain like that if no write</span></span><br><span class="line"><span class="comment">     * operation is received. */</span></span><br><span class="line">    <span class="comment">// 检查文件正确性</span></span><br><span class="line">    <span class="keyword">if</span> (fp &amp;&amp; redis_fstat(fileno(fp),&amp;sb) != <span class="number">-1</span> &amp;&amp; sb.st_size == <span class="number">0</span>) &#123;</span><br><span class="line">        server.aof_current_size = <span class="number">0</span>;</span><br><span class="line">        fclose(fp);</span><br><span class="line">        <span class="keyword">return</span> C_ERR;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Temporarily disable AOF, to prevent EXEC from feeding a MULTI</span></span><br><span class="line"><span class="comment">     * to the same file we're about to read. */</span></span><br><span class="line">    <span class="comment">// 临时关闭AOF，防止执行MULTI时，EXEC命令被同步到AOF文件中</span></span><br><span class="line">    server.aof_state = AOF_OFF;</span><br><span class="line"></span><br><span class="line">    fakeClient = createFakeClient();</span><br><span class="line">    <span class="comment">// 设置服务器状态</span></span><br><span class="line">    startLoading(fp);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Check if this AOF file has an RDB preamble. In that case we need to</span></span><br><span class="line"><span class="comment">     * load the RDB file and later continue loading the AOF tail. */</span></span><br><span class="line">    <span class="keyword">char</span> sig[<span class="number">5</span>]; <span class="comment">/* "REDIS" */</span></span><br><span class="line">    <span class="keyword">if</span> (fread(sig,<span class="number">1</span>,<span class="number">5</span>,fp) != <span class="number">5</span> || <span class="built_in">memcmp</span>(sig,<span class="string">"REDIS"</span>,<span class="number">5</span>) != <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">/* No RDB preamble, seek back at 0 offset. */</span></span><br><span class="line">        <span class="keyword">if</span> (fseek(fp,<span class="number">0</span>,SEEK_SET) == <span class="number">-1</span>) <span class="keyword">goto</span> readerr;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/* RDB preamble. Pass loading the RDB functions. */</span></span><br><span class="line">        rio rdb;</span><br><span class="line"></span><br><span class="line">        serverLog(LL_NOTICE,<span class="string">"Reading RDB preamble from AOF file..."</span>);</span><br><span class="line">        <span class="keyword">if</span> (fseek(fp,<span class="number">0</span>,SEEK_SET) == <span class="number">-1</span>) <span class="keyword">goto</span> readerr;</span><br><span class="line">        rioInitWithFile(&amp;rdb,fp);</span><br><span class="line">        <span class="keyword">if</span> (rdbLoadRio(&amp;rdb,<span class="literal">NULL</span>,<span class="number">1</span>) != C_OK) &#123;</span><br><span class="line">            serverLog(LL_WARNING,<span class="string">"Error reading the RDB preamble of the AOF file, AOF loading aborted"</span>);</span><br><span class="line">            <span class="keyword">goto</span> readerr;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            serverLog(LL_NOTICE,<span class="string">"Reading the remaining AOF tail..."</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Read the actual AOF file, in REPL format, command by command. */</span></span><br><span class="line">    <span class="comment">// 读取AOF文件，并执行命令</span></span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">int</span> argc, j;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> len;</span><br><span class="line">        robj **argv;</span><br><span class="line">        <span class="keyword">char</span> buf[<span class="number">128</span>];</span><br><span class="line">        sds argsds;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">redisCommand</span> *<span class="title">cmd</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Serve the clients from time to time */</span></span><br><span class="line">        <span class="comment">// 间隔性处理客户端发送的请求</span></span><br><span class="line">        <span class="comment">// 服务器处于载入状态，能执行的只有PUBSUB</span></span><br><span class="line">        <span class="keyword">if</span> (!(loops++ % <span class="number">1000</span>)) &#123;</span><br><span class="line">            loadingProgress(ftello(fp));</span><br><span class="line">            processEventsWhileBlocked();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 读入文件到缓冲区</span></span><br><span class="line">        <span class="keyword">if</span> (fgets(buf,<span class="keyword">sizeof</span>(buf),fp) == <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (feof(fp))</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                <span class="keyword">goto</span> readerr;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 解析文件</span></span><br><span class="line">        <span class="keyword">if</span> (buf[<span class="number">0</span>] != <span class="string">'*'</span>) <span class="keyword">goto</span> fmterr;</span><br><span class="line">        <span class="keyword">if</span> (buf[<span class="number">1</span>] == <span class="string">'\0'</span>) <span class="keyword">goto</span> readerr;</span><br><span class="line">        argc = atoi(buf+<span class="number">1</span>);</span><br><span class="line">        <span class="keyword">if</span> (argc &lt; <span class="number">1</span>) <span class="keyword">goto</span> fmterr;</span><br><span class="line"></span><br><span class="line">        argv = zmalloc(<span class="keyword">sizeof</span>(robj*)*argc);</span><br><span class="line">        fakeClient-&gt;argc = argc;</span><br><span class="line">        fakeClient-&gt;argv = argv;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 挨个解析命令</span></span><br><span class="line">        <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; argc; j++) &#123;</span><br><span class="line">            <span class="keyword">if</span> (fgets(buf,<span class="keyword">sizeof</span>(buf),fp) == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                fakeClient-&gt;argc = j; <span class="comment">/* Free up to j-1. */</span></span><br><span class="line">                freeFakeClientArgv(fakeClient);</span><br><span class="line">                <span class="keyword">goto</span> readerr;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (buf[<span class="number">0</span>] != <span class="string">'$'</span>) <span class="keyword">goto</span> fmterr;</span><br><span class="line">            len = strtol(buf+<span class="number">1</span>,<span class="literal">NULL</span>,<span class="number">10</span>);</span><br><span class="line">            argsds = sdsnewlen(<span class="literal">NULL</span>,len);</span><br><span class="line">            <span class="keyword">if</span> (len &amp;&amp; fread(argsds,len,<span class="number">1</span>,fp) == <span class="number">0</span>) &#123;</span><br><span class="line">                sdsfree(argsds);</span><br><span class="line">                fakeClient-&gt;argc = j; <span class="comment">/* Free up to j-1. */</span></span><br><span class="line">                freeFakeClientArgv(fakeClient);</span><br><span class="line">                <span class="keyword">goto</span> readerr;</span><br><span class="line">            &#125;</span><br><span class="line">            argv[j] = createObject(OBJ_STRING,argsds);</span><br><span class="line">            <span class="keyword">if</span> (fread(buf,<span class="number">2</span>,<span class="number">1</span>,fp) == <span class="number">0</span>) &#123;</span><br><span class="line">                fakeClient-&gt;argc = j+<span class="number">1</span>; <span class="comment">/* Free up to j. */</span></span><br><span class="line">                freeFakeClientArgv(fakeClient);</span><br><span class="line">                <span class="keyword">goto</span> readerr; <span class="comment">/* discard CRLF */</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Command lookup */</span></span><br><span class="line">        cmd = lookupCommand(argv[<span class="number">0</span>]-&gt;ptr);</span><br><span class="line">        <span class="keyword">if</span> (!cmd) &#123;</span><br><span class="line">            serverLog(LL_WARNING,<span class="string">"Unknown command '%s' reading the append only file"</span>, (<span class="keyword">char</span>*)argv[<span class="number">0</span>]-&gt;ptr);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Run the command in the context of a fake client */</span></span><br><span class="line">        <span class="comment">// 执行命令</span></span><br><span class="line">        fakeClient-&gt;cmd = cmd;</span><br><span class="line">        cmd-&gt;proc(fakeClient);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* The fake client should not have a reply */</span></span><br><span class="line">        serverAssert(fakeClient-&gt;bufpos == <span class="number">0</span> &amp;&amp; listLength(fakeClient-&gt;reply) == <span class="number">0</span>);</span><br><span class="line">        <span class="comment">/* The fake client should never get blocked */</span></span><br><span class="line">        serverAssert((fakeClient-&gt;flags &amp; CLIENT_BLOCKED) == <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Clean up. Command code may have changed argv/argc so we use the</span></span><br><span class="line"><span class="comment">         * argv/argc of the client instead of the local variables. */</span></span><br><span class="line">        <span class="comment">// 释放命令和参数</span></span><br><span class="line">        freeFakeClientArgv(fakeClient);</span><br><span class="line">        fakeClient-&gt;cmd = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="keyword">if</span> (server.aof_load_truncated) valid_up_to = ftello(fp);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* This point can only be reached when EOF is reached without errors.</span></span><br><span class="line"><span class="comment">     * If the client is in the middle of a MULTI/EXEC, log error and quit. */</span></span><br><span class="line">    <span class="keyword">if</span> (fakeClient-&gt;flags &amp; CLIENT_MULTI) <span class="keyword">goto</span> uxeof;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 通过AOF加载完成</span></span><br><span class="line">loaded_ok: <span class="comment">/* DB loaded, cleanup and return C_OK to the caller. */</span></span><br><span class="line">    fclose(fp);</span><br><span class="line">    freeFakeClient(fakeClient);</span><br><span class="line">    server.aof_state = old_aof_state;</span><br><span class="line">    stopLoading();</span><br><span class="line">    aofUpdateCurrentSize();</span><br><span class="line">    server.aof_rewrite_base_size = server.aof_current_size;</span><br><span class="line">    <span class="keyword">return</span> C_OK;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 各种错误处理</span></span><br><span class="line"></span><br><span class="line">readerr: <span class="comment">/* Read error. If feof(fp) is true, fall through to unexpected EOF. */</span></span><br><span class="line">    <span class="keyword">if</span> (!feof(fp)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (fakeClient) freeFakeClient(fakeClient); <span class="comment">/* avoid valgrind warning */</span></span><br><span class="line">        serverLog(LL_WARNING,<span class="string">"Unrecoverable error reading the append only file: %s"</span>, strerror(errno));</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">uxeof: <span class="comment">/* Unexpected AOF end of file. */</span></span><br><span class="line">    <span class="keyword">if</span> (server.aof_load_truncated) &#123;</span><br><span class="line">        serverLog(LL_WARNING,<span class="string">"!!! Warning: short read while loading the AOF file !!!"</span>);</span><br><span class="line">        serverLog(LL_WARNING,<span class="string">"!!! Truncating the AOF at offset %llu !!!"</span>,</span><br><span class="line">            (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>) valid_up_to);</span><br><span class="line">        <span class="keyword">if</span> (valid_up_to == <span class="number">-1</span> || truncate(filename,valid_up_to) == <span class="number">-1</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (valid_up_to == <span class="number">-1</span>) &#123;</span><br><span class="line">                serverLog(LL_WARNING,<span class="string">"Last valid command offset is invalid"</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                serverLog(LL_WARNING,<span class="string">"Error truncating the AOF file: %s"</span>,</span><br><span class="line">                    strerror(errno));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">/* Make sure the AOF file descriptor points to the end of the</span></span><br><span class="line"><span class="comment">             * file after the truncate call. */</span></span><br><span class="line">            <span class="keyword">if</span> (server.aof_fd != <span class="number">-1</span> &amp;&amp; lseek(server.aof_fd,<span class="number">0</span>,SEEK_END) == <span class="number">-1</span>) &#123;</span><br><span class="line">                serverLog(LL_WARNING,<span class="string">"Can't seek the end of the AOF file: %s"</span>,</span><br><span class="line">                    strerror(errno));</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                serverLog(LL_WARNING,</span><br><span class="line">                    <span class="string">"AOF loaded anyway because aof-load-truncated is enabled"</span>);</span><br><span class="line">                <span class="keyword">goto</span> loaded_ok;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (fakeClient) freeFakeClient(fakeClient); <span class="comment">/* avoid valgrind warning */</span></span><br><span class="line">    serverLog(LL_WARNING,<span class="string">"Unexpected end of file reading the append only file. You can: 1) Make a backup of your AOF file, then use ./redis-check-aof --fix &lt;filename&gt;. 2) Alternatively you can set the 'aof-load-truncated' configuration option to yes and restart the server."</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">fmterr: <span class="comment">/* Format error. */</span></span><br><span class="line">    <span class="keyword">if</span> (fakeClient) freeFakeClient(fakeClient); <span class="comment">/* avoid valgrind warning */</span></span><br><span class="line">    serverLog(LL_WARNING,<span class="string">"Bad file format reading the append only file: make a backup of your AOF file, then use ./redis-check-aof --fix &lt;filename&gt;"</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>AOF指令追加</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">feedAppendOnlyFile</span><span class="params">(struct redisCommand *cmd, <span class="keyword">int</span> dictid, robj **argv, <span class="keyword">int</span> argc)</span> </span>&#123;</span><br><span class="line">    sds buf = sdsempty();</span><br><span class="line">    robj *tmpargv[<span class="number">3</span>];</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* The DB this command was targeting is not the same as the last command</span></span><br><span class="line"><span class="comment">     * we appended. To issue a SELECT command is needed. */</span></span><br><span class="line">    <span class="comment">// SELECT 命令，确保数据库正确</span></span><br><span class="line">    <span class="keyword">if</span> (dictid != server.aof_selected_db) &#123;</span><br><span class="line">        <span class="keyword">char</span> seldb[<span class="number">64</span>];</span><br><span class="line"></span><br><span class="line">        <span class="built_in">snprintf</span>(seldb,<span class="keyword">sizeof</span>(seldb),<span class="string">"%d"</span>,dictid);</span><br><span class="line">        buf = sdscatprintf(buf,<span class="string">"*2\r\n$6\r\nSELECT\r\n$%lu\r\n%s\r\n"</span>,</span><br><span class="line">            (<span class="keyword">unsigned</span> <span class="keyword">long</span>)<span class="built_in">strlen</span>(seldb),seldb);</span><br><span class="line">        server.aof_selected_db = dictid;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// EXPIRE, PEXPIRE, EXPIREAT命令</span></span><br><span class="line">    <span class="keyword">if</span> (cmd-&gt;proc == expireCommand || cmd-&gt;proc == pexpireCommand ||</span><br><span class="line">        cmd-&gt;proc == expireatCommand) &#123;</span><br><span class="line">        <span class="comment">/* Translate EXPIRE/PEXPIRE/EXPIREAT into PEXPIREAT */</span></span><br><span class="line">        buf = catAppendOnlyExpireAtCommand(buf,cmd,argv[<span class="number">1</span>],argv[<span class="number">2</span>]);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// SETEX 和 PSETEX命令</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (cmd-&gt;proc == setexCommand || cmd-&gt;proc == psetexCommand) &#123;</span><br><span class="line">        <span class="comment">/* Translate SETEX/PSETEX to SET and PEXPIREAT */</span></span><br><span class="line">        tmpargv[<span class="number">0</span>] = createStringObject(<span class="string">"SET"</span>,<span class="number">3</span>);</span><br><span class="line">        tmpargv[<span class="number">1</span>] = argv[<span class="number">1</span>];</span><br><span class="line">        tmpargv[<span class="number">2</span>] = argv[<span class="number">3</span>];</span><br><span class="line">        buf = catAppendOnlyGenericCommand(buf,<span class="number">3</span>,tmpargv);</span><br><span class="line">        decrRefCount(tmpargv[<span class="number">0</span>]);</span><br><span class="line">        buf = catAppendOnlyExpireAtCommand(buf,cmd,argv[<span class="number">1</span>],argv[<span class="number">2</span>]);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// SET 命令</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (cmd-&gt;proc == setCommand &amp;&amp; argc &gt; <span class="number">3</span>) &#123;</span><br><span class="line">        <span class="keyword">int</span> i;</span><br><span class="line">        robj *exarg = <span class="literal">NULL</span>, *pxarg = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="comment">/* Translate SET [EX seconds][PX milliseconds] to SET and PEXPIREAT */</span></span><br><span class="line">        buf = catAppendOnlyGenericCommand(buf,<span class="number">3</span>,argv);</span><br><span class="line">        <span class="keyword">for</span> (i = <span class="number">3</span>; i &lt; argc; i ++) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!strcasecmp(argv[i]-&gt;ptr, <span class="string">"ex"</span>)) exarg = argv[i+<span class="number">1</span>];</span><br><span class="line">            <span class="keyword">if</span> (!strcasecmp(argv[i]-&gt;ptr, <span class="string">"px"</span>)) pxarg = argv[i+<span class="number">1</span>];</span><br><span class="line">        &#125;</span><br><span class="line">        serverAssert(!(exarg &amp;&amp; pxarg));</span><br><span class="line">        <span class="keyword">if</span> (exarg)</span><br><span class="line">            buf = catAppendOnlyExpireAtCommand(buf,server.expireCommand,argv[<span class="number">1</span>],</span><br><span class="line">                                               exarg);</span><br><span class="line">        <span class="keyword">if</span> (pxarg)</span><br><span class="line">            buf = catAppendOnlyExpireAtCommand(buf,server.pexpireCommand,argv[<span class="number">1</span>],</span><br><span class="line">                                               pxarg);</span><br><span class="line">        <span class="comment">// 其他命令</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/* All the other commands don't need translation or need the</span></span><br><span class="line"><span class="comment">         * same translation already operated in the command vector</span></span><br><span class="line"><span class="comment">         * for the replication itself. */</span></span><br><span class="line">        buf = catAppendOnlyGenericCommand(buf,argc,argv);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Append to the AOF buffer. This will be flushed on disk just before</span></span><br><span class="line"><span class="comment">     * of re-entering the event loop, so before the client will get a</span></span><br><span class="line"><span class="comment">     * positive reply about the operation performed. */</span></span><br><span class="line">    <span class="comment">// 命令追加到AOF缓冲区</span></span><br><span class="line">    <span class="keyword">if</span> (server.aof_state == AOF_ON)</span><br><span class="line">        server.aof_buf = sdscatlen(server.aof_buf,buf,sdslen(buf));</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* If a background append only file rewriting is in progress we want to</span></span><br><span class="line"><span class="comment">     * accumulate the differences between the child DB and the current one</span></span><br><span class="line"><span class="comment">     * in a buffer, so that when the child process will do its work we</span></span><br><span class="line"><span class="comment">     * can append the differences to the new append only file. */</span></span><br><span class="line">    <span class="comment">// 如果有AOF正在进行</span></span><br><span class="line">    <span class="comment">// 则追加到AOF重写缓冲区</span></span><br><span class="line">    <span class="keyword">if</span> (server.aof_child_pid != <span class="number">-1</span>)</span><br><span class="line">        aofRewriteBufferAppend((<span class="keyword">unsigned</span> <span class="keyword">char</span>*)buf,sdslen(buf));</span><br><span class="line"></span><br><span class="line">    sdsfree(buf);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>同步AOF到文件</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">flushAppendOnlyFile</span><span class="params">(<span class="keyword">int</span> force)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">ssize_t</span> nwritten;</span><br><span class="line">    <span class="keyword">int</span> sync_in_progress = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">mstime_t</span> latency;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 缓冲区没有内容，直接返回</span></span><br><span class="line">    <span class="keyword">if</span> (sdslen(server.aof_buf) == <span class="number">0</span>) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// fsync策略为每秒进行</span></span><br><span class="line">    <span class="keyword">if</span> (server.aof_fsync == AOF_FSYNC_EVERYSEC)</span><br><span class="line">        <span class="comment">// 是否有后台fsync正在执行</span></span><br><span class="line">        sync_in_progress = bioPendingJobsOfType(BIO_AOF_FSYNC) != <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 每秒fsync，但不强制写入</span></span><br><span class="line">    <span class="keyword">if</span> (server.aof_fsync == AOF_FSYNC_EVERYSEC &amp;&amp; !force) &#123;</span><br><span class="line">        <span class="comment">/* With this append fsync policy we do background fsyncing.</span></span><br><span class="line"><span class="comment">         * If the fsync is still in progress we can try to delay</span></span><br><span class="line"><span class="comment">         * the write for a couple of seconds. */</span></span><br><span class="line">        <span class="comment">// 后台有在执行的fsync，我们可以延迟一两秒</span></span><br><span class="line">        <span class="keyword">if</span> (sync_in_progress) &#123;</span><br><span class="line">            <span class="keyword">if</span> (server.aof_flush_postponed_start == <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="comment">/* No previous write postponing, remember that we are</span></span><br><span class="line"><span class="comment">                 * postponing the flush and return. */</span></span><br><span class="line">                <span class="comment">// 之前没有推迟过，则记录推迟时间</span></span><br><span class="line">                server.aof_flush_postponed_start = server.unixtime;</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (server.unixtime - server.aof_flush_postponed_start &lt; <span class="number">2</span>) &#123;</span><br><span class="line">                <span class="comment">// 已经推迟过， 但未超过2秒，直接返回</span></span><br><span class="line">                <span class="comment">/* We were already waiting for fsync to finish, but for less</span></span><br><span class="line"><span class="comment">                 * than two seconds this is still ok. Postpone again. */</span></span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">/* Otherwise fall trough, and go write since we can't wait</span></span><br><span class="line"><span class="comment">             * over two seconds. */</span></span><br><span class="line">            <span class="comment">// 有后台fsync执行，并且已经推迟了超过2秒，则执行写操作</span></span><br><span class="line">            server.aof_delayed_fsync++;</span><br><span class="line">            <span class="comment">// 记录日志</span></span><br><span class="line">            serverLog(LL_NOTICE,<span class="string">"Asynchronous AOF fsync is taking too long (disk is busy?). Writing the AOF buffer without waiting for fsync to complete, this may slow down Redis."</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* We want to perform a single write. This should be guaranteed atomic</span></span><br><span class="line"><span class="comment">     * at least if the filesystem we are writing is a real physical one.</span></span><br><span class="line"><span class="comment">     * While this will save us against the server being killed I don't think</span></span><br><span class="line"><span class="comment">     * there is much to do about the whole server stopping for power problems</span></span><br><span class="line"><span class="comment">     * or alike */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 执行单个write操作，如果写入物理设备，那么操作应该是原子的</span></span><br><span class="line">    <span class="comment">// 但如果出现类似断电这样的故障，AOF文件也可能出现问题</span></span><br><span class="line">    <span class="comment">// 这是需要redis-check-aof来修复</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 记录开始时间</span></span><br><span class="line">    latencyStartMonitor(latency);</span><br><span class="line">    <span class="comment">// AOF缓冲区写到AOF文件描述符</span></span><br><span class="line">    nwritten = aofWrite(server.aof_fd,server.aof_buf,sdslen(server.aof_buf));</span><br><span class="line">    <span class="comment">// 记录结束时间</span></span><br><span class="line">    latencyEndMonitor(latency);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We want to capture different events for delayed writes:</span></span><br><span class="line"><span class="comment">     * when the delay happens with a pending fsync, or with a saving child</span></span><br><span class="line"><span class="comment">     * active, and when the above two conditions are missing.</span></span><br><span class="line"><span class="comment">     * We also use an additional event name to save all samples which is</span></span><br><span class="line"><span class="comment">     * useful for graphing / monitoring purposes. */</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (sync_in_progress) &#123;</span><br><span class="line">        <span class="comment">// 后台fsync正在执行</span></span><br><span class="line">        <span class="comment">// 添加采样aof-write-pending-fsync</span></span><br><span class="line">        latencyAddSampleIfNeeded(<span class="string">"aof-write-pending-fsync"</span>,latency);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (server.aof_child_pid != <span class="number">-1</span> || server.rdb_child_pid != <span class="number">-1</span>) &#123;</span><br><span class="line">        <span class="comment">// aof或rdb子进程在执行</span></span><br><span class="line">        <span class="comment">// 添加采样aof-write-active-child</span></span><br><span class="line">        latencyAddSampleIfNeeded(<span class="string">"aof-write-active-child"</span>,latency);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 否则添加aof-write-alone采样</span></span><br><span class="line">        latencyAddSampleIfNeeded(<span class="string">"aof-write-alone"</span>,latency);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 记录aof-write</span></span><br><span class="line">    latencyAddSampleIfNeeded(<span class="string">"aof-write"</span>,latency);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We performed the write so reset the postponed flush sentinel to zero. */</span></span><br><span class="line">    <span class="comment">// 清除延迟write标识</span></span><br><span class="line">    server.aof_flush_postponed_start = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 写入大小不相等</span></span><br><span class="line">    <span class="keyword">if</span> (nwritten != (<span class="keyword">ssize_t</span>)sdslen(server.aof_buf)) &#123;</span><br><span class="line">        <span class="keyword">static</span> <span class="keyword">time_t</span> last_write_error_log = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">int</span> can_log = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Limit logging rate to 1 line per AOF_WRITE_LOG_ERROR_RATE seconds. */</span></span><br><span class="line">        <span class="comment">// 日志记录频率限制在每行AOF_WRITE_LOG_ERROR_RATE秒</span></span><br><span class="line">        <span class="keyword">if</span> ((server.unixtime - last_write_error_log) &gt; AOF_WRITE_LOG_ERROR_RATE) &#123;</span><br><span class="line">            can_log = <span class="number">1</span>;</span><br><span class="line">            last_write_error_log = server.unixtime;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Log the AOF write error and record the error code. */</span></span><br><span class="line">        <span class="comment">// 记录AOF写入出错</span></span><br><span class="line">        <span class="keyword">if</span> (nwritten == <span class="number">-1</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (can_log) &#123;</span><br><span class="line">                serverLog(LL_WARNING,<span class="string">"Error writing to the AOF file: %s"</span>,</span><br><span class="line">                    strerror(errno));</span><br><span class="line">                server.aof_last_write_errno = errno;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (can_log) &#123;</span><br><span class="line">                serverLog(LL_WARNING,<span class="string">"Short write while writing to "</span></span><br><span class="line">                                       <span class="string">"the AOF file: (nwritten=%lld, "</span></span><br><span class="line">                                       <span class="string">"expected=%lld)"</span>,</span><br><span class="line">                                       (<span class="keyword">long</span> <span class="keyword">long</span>)nwritten,</span><br><span class="line">                                       (<span class="keyword">long</span> <span class="keyword">long</span>)sdslen(server.aof_buf));</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (ftruncate(server.aof_fd, server.aof_current_size) == <span class="number">-1</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (can_log) &#123;</span><br><span class="line">                    serverLog(LL_WARNING, <span class="string">"Could not remove short write "</span></span><br><span class="line">                             <span class="string">"from the append-only file.  Redis may refuse "</span></span><br><span class="line">                             <span class="string">"to load the AOF the next time it starts.  "</span></span><br><span class="line">                             <span class="string">"ftruncate: %s"</span>, strerror(errno));</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">/* If the ftruncate() succeeded we can set nwritten to</span></span><br><span class="line"><span class="comment">                 * -1 since there is no longer partial data into the AOF. */</span></span><br><span class="line">                nwritten = <span class="number">-1</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            server.aof_last_write_errno = ENOSPC;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Handle the AOF write error. */</span></span><br><span class="line">        <span class="comment">// 处理AOF写入错误</span></span><br><span class="line">        <span class="keyword">if</span> (server.aof_fsync == AOF_FSYNC_ALWAYS) &#123;</span><br><span class="line">            <span class="comment">/* We can't recover when the fsync policy is ALWAYS since the</span></span><br><span class="line"><span class="comment">             * reply for the client is already in the output buffers, and we</span></span><br><span class="line"><span class="comment">             * have the contract with the user that on acknowledged write data</span></span><br><span class="line"><span class="comment">             * is synced on disk. */</span></span><br><span class="line">            serverLog(LL_WARNING,<span class="string">"Can't recover from AOF write error when the AOF fsync policy is 'always'. Exiting..."</span>);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">/* Recover from failed write leaving data into the buffer. However</span></span><br><span class="line"><span class="comment">             * set an error to stop accepting writes as long as the error</span></span><br><span class="line"><span class="comment">             * condition is not cleared. */</span></span><br><span class="line">            server.aof_last_write_status = C_ERR;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Trim the sds buffer if there was a partial write, and there</span></span><br><span class="line"><span class="comment">             * was no way to undo it with ftruncate(2). */</span></span><br><span class="line">            <span class="keyword">if</span> (nwritten &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                server.aof_current_size += nwritten;</span><br><span class="line">                sdsrange(server.aof_buf,nwritten,<span class="number">-1</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span>; <span class="comment">/* We'll try again on the next call... */</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/* Successful write(2). If AOF was in error state, restore the</span></span><br><span class="line"><span class="comment">         * OK state and log the event. */</span></span><br><span class="line">        <span class="comment">// 写入成功，更新状态</span></span><br><span class="line">        <span class="keyword">if</span> (server.aof_last_write_status == C_ERR) &#123;</span><br><span class="line">            serverLog(LL_WARNING,</span><br><span class="line">                <span class="string">"AOF write error looks solved, Redis can write again."</span>);</span><br><span class="line">            server.aof_last_write_status = C_OK;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 更新AOF文件大小</span></span><br><span class="line">    server.aof_current_size += nwritten;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Re-use AOF buffer when it is small enough. The maximum comes from the</span></span><br><span class="line"><span class="comment">     * arena size of 4k minus some overhead (but is otherwise arbitrary). */</span></span><br><span class="line">    <span class="comment">// 是否重用缓冲区，AOF缓存小于4K即可重用</span></span><br><span class="line">    <span class="keyword">if</span> ((sdslen(server.aof_buf)+sdsavail(server.aof_buf)) &lt; <span class="number">4000</span>) &#123;</span><br><span class="line">        <span class="comment">// 清楚缓冲区内容</span></span><br><span class="line">        sdsclear(server.aof_buf);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 释放缓冲区</span></span><br><span class="line">        sdsfree(server.aof_buf);</span><br><span class="line">        server.aof_buf = sdsempty();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Don't fsync if no-appendfsync-on-rewrite is set to yes and there are</span></span><br><span class="line"><span class="comment">     * children doing I/O in the background. */</span></span><br><span class="line">    <span class="comment">// no-appendfsync-on-rewrite开启或者有AOF，RDB子进程执行，则直接返回，不执行fsync</span></span><br><span class="line">    <span class="keyword">if</span> (server.aof_no_fsync_on_rewrite &amp;&amp;</span><br><span class="line">        (server.aof_child_pid != <span class="number">-1</span> || server.rdb_child_pid != <span class="number">-1</span>))</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Perform the fsync if needed. */</span></span><br><span class="line">    <span class="keyword">if</span> (server.aof_fsync == AOF_FSYNC_ALWAYS) &#123;</span><br><span class="line">        <span class="comment">/* aof_fsync is defined as fdatasync() for Linux in order to avoid</span></span><br><span class="line"><span class="comment">         * flushing metadata. */</span></span><br><span class="line">        latencyStartMonitor(latency);</span><br><span class="line">        <span class="comment">// 写入到磁盘中</span></span><br><span class="line">        aof_fsync(server.aof_fd); <span class="comment">/* Let's try to get this data on the disk */</span></span><br><span class="line">        latencyEndMonitor(latency);</span><br><span class="line">        latencyAddSampleIfNeeded(<span class="string">"aof-fsync-always"</span>,latency);</span><br><span class="line">        <span class="comment">// 更新写入时间</span></span><br><span class="line">        server.aof_last_fsync = server.unixtime;</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((server.aof_fsync == AOF_FSYNC_EVERYSEC &amp;&amp;</span><br><span class="line">                server.unixtime &gt; server.aof_last_fsync)) &#123;</span><br><span class="line">        <span class="comment">// 放到后台执行</span></span><br><span class="line">        <span class="keyword">if</span> (!sync_in_progress) aof_background_fsync(server.aof_fd);</span><br><span class="line">        server.aof_last_fsync = server.unixtime;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 编码命令内容, 按照一定协议记录指令</span></span><br><span class="line"><span class="comment"> * 命令个数：格式: *&lt;count&gt;\r\n</span></span><br><span class="line"><span class="comment"> * 命令内容：格式：$&lt;length&gt;\r\n&lt;content&gt;\r\n</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function">sds <span class="title">catAppendOnlyGenericCommand</span><span class="params">(sds dst, <span class="keyword">int</span> argc, robj **argv)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">char</span> buf[<span class="number">32</span>];</span><br><span class="line">    <span class="keyword">int</span> len, j;</span><br><span class="line">    robj *o;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 命令个数，格式: *&lt;count&gt;\r\n</span></span><br><span class="line">    buf[<span class="number">0</span>] = <span class="string">'*'</span>;</span><br><span class="line">    len = <span class="number">1</span>+ll2string(buf+<span class="number">1</span>,<span class="keyword">sizeof</span>(buf)<span class="number">-1</span>,argc);</span><br><span class="line">    buf[len++] = <span class="string">'\r'</span>;</span><br><span class="line">    buf[len++] = <span class="string">'\n'</span>;</span><br><span class="line">    dst = sdscatlen(dst,buf,len);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 命令内容，格式: $&lt;length&gt;\r\n&lt;content&gt;\r\n</span></span><br><span class="line">    <span class="comment">// 如 $3\r\nSET\r\n$5\r\nhello\r\n$5\r\nworld\r\n</span></span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; argc; j++) &#123;</span><br><span class="line">        o = getDecodedObject(argv[j]);</span><br><span class="line">        buf[<span class="number">0</span>] = <span class="string">'$'</span>;</span><br><span class="line">        len = <span class="number">1</span>+ll2string(buf+<span class="number">1</span>,<span class="keyword">sizeof</span>(buf)<span class="number">-1</span>,sdslen(o-&gt;ptr));</span><br><span class="line">        buf[len++] = <span class="string">'\r'</span>;</span><br><span class="line">        buf[len++] = <span class="string">'\n'</span>;</span><br><span class="line">        dst = sdscatlen(dst,buf,len);</span><br><span class="line">        dst = sdscatlen(dst,o-&gt;ptr,sdslen(o-&gt;ptr));</span><br><span class="line">        dst = sdscatlen(dst,<span class="string">"\r\n"</span>,<span class="number">2</span>);</span><br><span class="line">        decrRefCount(o);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> dst;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>AOF后台重写</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">rewriteAppendOnlyFileBackground</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">pid_t</span> childpid;</span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> start;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 已经有AOF或RDB，返回错误</span></span><br><span class="line">    <span class="keyword">if</span> (server.aof_child_pid != <span class="number">-1</span> || server.rdb_child_pid != <span class="number">-1</span>) <span class="keyword">return</span> C_ERR;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建进程间通信管道</span></span><br><span class="line">    <span class="keyword">if</span> (aofCreatePipes() != C_OK) <span class="keyword">return</span> C_ERR;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 开启子进程到父进程通信的管道</span></span><br><span class="line">    openChildInfoPipe();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 记录开始时间</span></span><br><span class="line">    start = ustime();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建子进程</span></span><br><span class="line">    <span class="keyword">if</span> ((childpid = fork()) == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">char</span> tmpfile[<span class="number">256</span>];</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Child */</span></span><br><span class="line">        <span class="comment">// 关闭socket文件</span></span><br><span class="line">        closeListeningSockets(<span class="number">0</span>);</span><br><span class="line">        <span class="comment">// 设置进程名</span></span><br><span class="line">        redisSetProcTitle(<span class="string">"redis-aof-rewrite"</span>);</span><br><span class="line">        <span class="comment">// 临时文件名</span></span><br><span class="line">        <span class="built_in">snprintf</span>(tmpfile,<span class="number">256</span>,<span class="string">"temp-rewriteaof-bg-%d.aof"</span>, (<span class="keyword">int</span>) getpid());</span><br><span class="line">        <span class="comment">// AOF重写到临时文件</span></span><br><span class="line">        <span class="keyword">if</span> (rewriteAppendOnlyFile(tmpfile) == C_OK) &#123;</span><br><span class="line">            <span class="comment">// 获取子进程使用内存空间大小</span></span><br><span class="line">            <span class="keyword">size_t</span> private_dirty = zmalloc_get_private_dirty(<span class="number">-1</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 记录日志</span></span><br><span class="line">            <span class="keyword">if</span> (private_dirty) &#123;</span><br><span class="line">                serverLog(LL_NOTICE,</span><br><span class="line">                    <span class="string">"AOF rewrite: %zu MB of memory used by copy-on-write"</span>,</span><br><span class="line">                    private_dirty/(<span class="number">1024</span>*<span class="number">1024</span>));</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 记录子进程使用内存空间</span></span><br><span class="line">            server.child_info_data.cow_size = private_dirty;</span><br><span class="line">            <span class="comment">// 发送数据给父进程</span></span><br><span class="line">            sendChildInfo(CHILD_INFO_TYPE_AOF);</span><br><span class="line">            <span class="comment">// 子进程退出</span></span><br><span class="line">            exitFromChild(<span class="number">0</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            exitFromChild(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/* Parent */</span></span><br><span class="line">        <span class="comment">// 记录创建子进程使用时间</span></span><br><span class="line">        server.stat_fork_time = ustime()-start;</span><br><span class="line">        <span class="comment">// 记录创建子进程的速率</span></span><br><span class="line">        server.stat_fork_rate = (<span class="keyword">double</span>) zmalloc_used_memory() * <span class="number">1000000</span> / server.stat_fork_time / (<span class="number">1024</span>*<span class="number">1024</span>*<span class="number">1024</span>); <span class="comment">/* GB per second. */</span></span><br><span class="line">        <span class="comment">// 记录fork使用时间</span></span><br><span class="line">        latencyAddSampleIfNeeded(<span class="string">"fork"</span>,server.stat_fork_time/<span class="number">1000</span>);</span><br><span class="line">        <span class="comment">// 创建子进程失败，则返回错误</span></span><br><span class="line">        <span class="keyword">if</span> (childpid == <span class="number">-1</span>) &#123;</span><br><span class="line">            <span class="comment">// 关闭子进程管道</span></span><br><span class="line">            closeChildInfoPipe();</span><br><span class="line">            <span class="comment">// 记录日志</span></span><br><span class="line">            serverLog(LL_WARNING,</span><br><span class="line">                <span class="string">"Can't rewrite append only file in background: fork: %s"</span>,</span><br><span class="line">                strerror(errno));</span><br><span class="line">            <span class="comment">// 关闭通信管道</span></span><br><span class="line">            aofClosePipes();</span><br><span class="line">            <span class="keyword">return</span> C_ERR;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 记录日志</span></span><br><span class="line">        serverLog(LL_NOTICE,</span><br><span class="line">            <span class="string">"Background append only file rewriting started by pid %d"</span>,childpid);</span><br><span class="line">        <span class="comment">// 关闭AOF重写计划</span></span><br><span class="line">        server.aof_rewrite_scheduled = <span class="number">0</span>;</span><br><span class="line">        <span class="comment">// 开始时间</span></span><br><span class="line">        server.aof_rewrite_time_start = time(<span class="literal">NULL</span>);</span><br><span class="line">        <span class="comment">// 子进程pid</span></span><br><span class="line">        server.aof_child_pid = childpid;</span><br><span class="line">        <span class="comment">// AOF或RDB期间，不能进行resize</span></span><br><span class="line">        updateDictResizePolicy();</span><br><span class="line">        <span class="comment">/* We set appendseldb to -1 in order to force the next call to the</span></span><br><span class="line"><span class="comment">         * feedAppendOnlyFile() to issue a SELECT command, so the differences</span></span><br><span class="line"><span class="comment">         * accumulated by the parent into server.aof_rewrite_buf will start</span></span><br><span class="line"><span class="comment">         * with a SELECT statement and it will be safe to merge. */</span></span><br><span class="line">        server.aof_selected_db = <span class="number">-1</span>;</span><br><span class="line">        <span class="comment">// 情况脚本缓存</span></span><br><span class="line">        replicationScriptCacheFlush();</span><br><span class="line">        <span class="keyword">return</span> C_OK;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> C_OK; <span class="comment">/* unreached */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/09/03/redis/16_RDB持久化/" rel="next" title="Redis源码阅读(十六) RDB持久化">
+                <i class="fa fa-chevron-left"></i> Redis源码阅读(十六) RDB持久化
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/09/10/redis/18_事件模型/" rel="prev" title="Redis源码阅读(十八) 事件模型">
+                Redis源码阅读(十八) 事件模型 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/gxcbuf.jpg"
+                alt="郭欣成" />
+            
+              <p class="site-author-name" itemprop="name">郭欣成</p>
+              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">26</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/gxcbuf" target="_blank" title="GitHub"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                  
+                </span>
+              
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-AOF文件"><span class="nav-number">1.</span> <span class="nav-text">1. AOF文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-AOF持久化"><span class="nav-number">2.</span> <span class="nav-text">2. AOF持久化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-命令追加"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 命令追加</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-写入文件和同步磁盘"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 写入文件和同步磁盘</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-AOF载入"><span class="nav-number">3.</span> <span class="nav-text">3. AOF载入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-AOF重写"><span class="nav-number">4.</span> <span class="nav-text">4. AOF重写</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-number">5.</span> <span class="nav-text">5. 源码剖析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">郭欣成</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Muse</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
