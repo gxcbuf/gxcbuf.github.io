@@ -431,6 +431,7 @@
 </ol>
 <h4 id="2-2-写入文件和同步磁盘"><a href="#2-2-写入文件和同步磁盘" class="headerlink" title="2.2 写入文件和同步磁盘"></a>2.2 写入文件和同步磁盘</h4><p>Redis服务器进程是一个事件循环，文件事件负责接收客户端的命令请求，以及回复客户端，而时间事件负责执行定时任务，服务器在每次结束事件循环之前，会调用flushAppendOnlyFile函数，判断是否将AOF缓冲区内容写入到AOF文件中。</p>
 <p>AOF缓冲区内容写入到文件后是否进行AOF同步有三种策略：</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -453,6 +454,7 @@
 </tr>
 </tbody>
 </table>
+</div>
 <blockquote>
 <p>为了提高文件写入效率，用于调用write函数写入文件时，会将数据写入到内存缓冲区，等待缓冲区被填满或手动执行同步时，才会将内容中同步到磁盘中。</p>
 </blockquote>

@@ -419,6 +419,7 @@
       
         <p>压缩列表是Redis为了节省内存而设计的特殊编码的双端链表，可以存储字符串和整数，整数值保存为实际的整数而不是字符数组，它允许在链表两端进行push和pop操作，时间复杂度为O(1)，很多的操作需要对内存进行重新分配，所以实际情况还与内存使用的大小有关。</p>
 <h3 id="1-定义"><a href="#1-定义" class="headerlink" title="1. 定义"></a>1. 定义</h3><h4 id="1-1-压缩列表"><a href="#1-1-压缩列表" class="headerlink" title="1.1 压缩列表"></a>1.1 压缩列表</h4><p>从本质上来说，ziplist就是一串按照某种固定方式存储的字节数组，不依赖c语言的strcut，完全是内存的一些约束和操作，它包括5个组成部分zlbytes, zltail, zllen, entries,  zlend。</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -461,6 +462,7 @@
 </tr>
 </tbody>
 </table>
+</div>
 <h4 id="1-2-压缩列表结点"><a href="#1-2-压缩列表结点" class="headerlink" title="1.2 压缩列表结点"></a>1.2 压缩列表结点</h4><p>结点可以存储字符串或在整数。</p>
 <ul>
 <li>字符串<ul>
@@ -493,6 +495,7 @@
 <p>该属性表示当前结点保存数据所需要的类型和长度，有时候encoding也表示数据本身（小的整数值）</p>
 </li>
 </ul>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -543,6 +546,7 @@
 </tr>
 </tbody>
 </table>
+</div>
 <ul>
 <li><p>entry-data</p>
 <p>结点的数据值可以是一个字节数组或者整数，类型有encoding决定。</p>

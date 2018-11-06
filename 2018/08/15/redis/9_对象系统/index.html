@@ -436,6 +436,7 @@
 </ul>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisObject</span> &#123;</span>                                                                            </span><br><span class="line">    <span class="comment">// 4bit，表示对象类型, OBJ_STRING ...                                                              </span></span><br><span class="line">    <span class="keyword">unsigned</span> type:<span class="number">4</span>;                                                                                    </span><br><span class="line">    <span class="comment">// 4bit，表示编码类型, OBJ_ENCODING_RAE ...                                                        </span></span><br><span class="line">    <span class="keyword">unsigned</span> encoding:<span class="number">4</span>;                                                                                </span><br><span class="line">    <span class="comment">// LRU最后一次被访问的时间; LFU历史访问频次                                                                            </span></span><br><span class="line">    <span class="keyword">unsigned</span> lru:LRU_BITS; <span class="comment">/* LRU time (relative to global lru_clock) or                                </span></span><br><span class="line"><span class="comment">                            * LFU data (least significant 8 bits frequency                              </span></span><br><span class="line"><span class="comment">                            * and most significant 16 bits access time). */</span>                             </span><br><span class="line">    <span class="comment">// 对象引用计数                                                                                     </span></span><br><span class="line">    <span class="keyword">int</span> refcount;                                                                                       </span><br><span class="line">    <span class="comment">// 实际存储地址                                                                                     </span></span><br><span class="line">    <span class="keyword">void</span> *ptr;                                                                                          </span><br><span class="line">&#125; robj;</span><br></pre></td></tr></table></figure>
 <h3 id="2-对象类型"><a href="#2-对象类型" class="headerlink" title="2. 对象类型"></a>2. 对象类型</h3><p>redis对象使用type(4bit)字段表示该对象的类型，Redis数据库中键总是一个字符串对象，而值可以是字符串对象、列表对象、哈希对象、集合对象、有序集合对象和模块对象。</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -477,7 +478,9 @@
 </tr>
 </tbody>
 </table>
+</div>
 <h3 id="3-对象编码"><a href="#3-对象编码" class="headerlink" title="3. 对象编码"></a>3. 对象编码</h3><p>redis对象的ptr属性指向底层的数据结构，这些数据结构由encoding属性决定。</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -509,13 +512,13 @@
 <tr>
 <td style="text-align:center">OBJ_ENCODING_ZIPMAP 3</td>
 <td style="text-align:center">压缩字典</td>
-<td style="text-align:center">—</td>
+<td style="text-align:center">—-</td>
 <td style="text-align:center">不会单独使用</td>
 </tr>
 <tr>
 <td style="text-align:center">OBJ_ENCODING_LINKEDLIST 4</td>
 <td style="text-align:center">双端链表</td>
-<td style="text-align:center">—</td>
+<td style="text-align:center">—-</td>
 <td style="text-align:center">不再用于列表对象</td>
 </tr>
 <tr>
@@ -549,7 +552,9 @@
 </tr>
 </tbody>
 </table>
+</div>
 <p>每种对象都存在不同的编码方式。</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -611,6 +616,7 @@
 </tr>
 </tbody>
 </table>
+</div>
 <h3 id="4-内存优化"><a href="#4-内存优化" class="headerlink" title="4. 内存优化"></a>4. 内存优化</h3><h4 id="4-1-引用计数"><a href="#4-1-引用计数" class="headerlink" title="4.1 引用计数"></a>4.1 引用计数</h4><p>C语言没有垃圾回收机制(GC)，所以Redis自己实现了基于引用计数的内存回收，通过跟踪引用计数，在适当的时候释放内存空间，优化性能。</p>
 <p>对象的引用计数会随对象的使用而发生改变</p>
 <ul>
@@ -620,6 +626,7 @@
 <li>引用计数减为0时，释放占用内存空间</li>
 <li>[0, 10000)范围的整数引用计数设为INT_MAX，用做整数共享</li>
 </ul>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -642,6 +649,7 @@
 </tr>
 </tbody>
 </table>
+</div>
 <h4 id="4-2-对象共享"><a href="#4-2-对象共享" class="headerlink" title="4.2 对象共享"></a>4.2 对象共享</h4><p>Redis通过引用计数实现了对象共享的机制，如[0, 10000)范围的数字就是共享整数，若redis中的值在此范围内，则会通过指针指向这些整数。</p>
 <blockquote>
 <p>当服务器将共享对象设置为值的时候，需要检查共享对象和目标对象是否完全相同，只有完全相同才会进行共享，检查对象完全相同的代价取决于对象的复杂程度，基础类型耗时很少，但越复杂的对象则需要越大的代价，尽管可以节省内存，但CPU耗时会增加，所以Redis目前只共享整数</p>

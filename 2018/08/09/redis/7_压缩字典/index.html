@@ -108,18 +108,18 @@
 
 
 
-  <meta name="description" content="1. 定义zipmap是为了优化string==&amp;gt;string的映射而实现的特殊编码结构，它由7部分组成，zmlen,klen,key,vlen,free,val,end，但实际上讲只有4部分，zmlen,len(klen,vlen,end),data(key,val),free。    属性 描述     zmlen 1字节大小，存储了压缩字典中kv对的个数，当超过254时，需要遍历才能获">
+  <meta name="description" content="1. 定义zipmap是为了优化string==&amp;gt;string的映射而实现的特殊编码结构，它由7部分组成，zmlen,klen,key,vlen,free,val,end，但实际上讲只有4部分，zmlen,len(klen,vlen,end),data(key,val),free。     属性 描述     zmlen 1字节大小，存储了压缩字典中kv对的个数，当超过254时，需要遍历才能">
 <meta name="keywords" content="redis">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(七) 压缩字典">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/09/redis/7_压缩字典/index.html">
 <meta property="og:site_name" content="孰能生巧">
-<meta property="og:description" content="1. 定义zipmap是为了优化string==&amp;gt;string的映射而实现的特殊编码结构，它由7部分组成，zmlen,klen,key,vlen,free,val,end，但实际上讲只有4部分，zmlen,len(klen,vlen,end),data(key,val),free。    属性 描述     zmlen 1字节大小，存储了压缩字典中kv对的个数，当超过254时，需要遍历才能获">
+<meta property="og:description" content="1. 定义zipmap是为了优化string==&amp;gt;string的映射而实现的特殊编码结构，它由7部分组成，zmlen,klen,key,vlen,free,val,end，但实际上讲只有4部分，zmlen,len(klen,vlen,end),data(key,val),free。     属性 描述     zmlen 1字节大小，存储了压缩字典中kv对的个数，当超过254时，需要遍历才能">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-08-09T08:39:49.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Redis源码阅读(七) 压缩字典">
-<meta name="twitter:description" content="1. 定义zipmap是为了优化string==&amp;gt;string的映射而实现的特殊编码结构，它由7部分组成，zmlen,klen,key,vlen,free,val,end，但实际上讲只有4部分，zmlen,len(klen,vlen,end),data(key,val),free。    属性 描述     zmlen 1字节大小，存储了压缩字典中kv对的个数，当超过254时，需要遍历才能获">
+<meta name="twitter:description" content="1. 定义zipmap是为了优化string==&amp;gt;string的映射而实现的特殊编码结构，它由7部分组成，zmlen,klen,key,vlen,free,val,end，但实际上讲只有4部分，zmlen,len(klen,vlen,end),data(key,val),free。     属性 描述     zmlen 1字节大小，存储了压缩字典中kv对的个数，当超过254时，需要遍历才能">
 
 
 
@@ -418,6 +418,7 @@
 
       
         <h3 id="1-定义"><a href="#1-定义" class="headerlink" title="1. 定义"></a>1. 定义</h3><p>zipmap是为了优化string==&gt;string的映射而实现的特殊编码结构，它由7部分组成，zmlen,klen,key,vlen,free,val,end，但实际上讲只有4部分，zmlen,len(klen,vlen,end),data(key,val),free。</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -456,6 +457,7 @@
 </tr>
 </tbody>
 </table>
+</div>
 <p>zipmap并没有像ziplist连锁更新之类的特殊操作，只是对内存进行一些移动，扩展，收缩等待。</p>
 <h3 id="2-源码剖析"><a href="#2-源码剖析" class="headerlink" title="2. 源码剖析"></a>2. 源码剖析</h3><ul>
 <li>查找结点</li>

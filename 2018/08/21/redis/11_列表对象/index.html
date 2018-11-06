@@ -108,18 +108,18 @@
 
 
 
-  <meta name="description" content="Redis列表对象是简单的字符串列表，按照插入顺序排序，可以添加一个元素到头部或尾部，一个列表键最多可包含2^32-1个元素。 1. 编码Redis列表键的底层编码是QUICKLIST，而quicklist本质上就是以ziplist为结点的双端链表。 2. 命令   命令 作用     LINDEX 根据索引index获取列表key中的元素   LINSERT 在列表key指定的元素pivot的前">
+  <meta name="description" content="Redis列表对象是简单的字符串列表，按照插入顺序排序，可以添加一个元素到头部或尾部，一个列表键最多可包含2^32-1个元素。 1. 编码Redis列表键的底层编码是QUICKLIST，而quicklist本质上就是以ziplist为结点的双端链表。 2. 命令    命令 作用     LINDEX 根据索引index获取列表key中的元素   LINSERT 在列表key指定的元素pivot的">
 <meta name="keywords" content="redis">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(十一) 列表对象">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/21/redis/11_列表对象/index.html">
 <meta property="og:site_name" content="孰能生巧">
-<meta property="og:description" content="Redis列表对象是简单的字符串列表，按照插入顺序排序，可以添加一个元素到头部或尾部，一个列表键最多可包含2^32-1个元素。 1. 编码Redis列表键的底层编码是QUICKLIST，而quicklist本质上就是以ziplist为结点的双端链表。 2. 命令   命令 作用     LINDEX 根据索引index获取列表key中的元素   LINSERT 在列表key指定的元素pivot的前">
+<meta property="og:description" content="Redis列表对象是简单的字符串列表，按照插入顺序排序，可以添加一个元素到头部或尾部，一个列表键最多可包含2^32-1个元素。 1. 编码Redis列表键的底层编码是QUICKLIST，而quicklist本质上就是以ziplist为结点的双端链表。 2. 命令    命令 作用     LINDEX 根据索引index获取列表key中的元素   LINSERT 在列表key指定的元素pivot的">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-08-23T02:40:05.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Redis源码阅读(十一) 列表对象">
-<meta name="twitter:description" content="Redis列表对象是简单的字符串列表，按照插入顺序排序，可以添加一个元素到头部或尾部，一个列表键最多可包含2^32-1个元素。 1. 编码Redis列表键的底层编码是QUICKLIST，而quicklist本质上就是以ziplist为结点的双端链表。 2. 命令   命令 作用     LINDEX 根据索引index获取列表key中的元素   LINSERT 在列表key指定的元素pivot的前">
+<meta name="twitter:description" content="Redis列表对象是简单的字符串列表，按照插入顺序排序，可以添加一个元素到头部或尾部，一个列表键最多可包含2^32-1个元素。 1. 编码Redis列表键的底层编码是QUICKLIST，而quicklist本质上就是以ziplist为结点的双端链表。 2. 命令    命令 作用     LINDEX 根据索引index获取列表key中的元素   LINSERT 在列表key指定的元素pivot的">
 
 
 
@@ -431,7 +431,8 @@
       
         <p>Redis列表对象是简单的字符串列表，按照插入顺序排序，可以添加一个元素到头部或尾部，一个列表键最多可包含2^32-1个元素。</p>
 <h3 id="1-编码"><a href="#1-编码" class="headerlink" title="1. 编码"></a>1. 编码</h3><p>Redis列表键的底层编码是QUICKLIST，而quicklist本质上就是以ziplist为结点的双端链表。</p>
-<h3 id="2-命令"><a href="#2-命令" class="headerlink" title="2. 命令"></a>2. 命令</h3><table>
+<h3 id="2-命令"><a href="#2-命令" class="headerlink" title="2. 命令"></a>2. 命令</h3><div class="table-container">
+<table>
 <thead>
 <tr>
 <th>命令</th>
@@ -497,6 +498,7 @@
 </tr>
 </tbody>
 </table>
+</div>
 <h3 id="3-阻塞命令"><a href="#3-阻塞命令" class="headerlink" title="3. 阻塞命令"></a>3. 阻塞命令</h3><p>Redis定义了阻塞状态，而每个客户端都有这样的一个状态。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">blockingState</span> &#123;</span>                                                                          </span><br><span class="line">    <span class="comment">/* Generic fields. */</span>     </span><br><span class="line">    <span class="comment">// 阻塞的时间</span></span><br><span class="line">    <span class="keyword">mstime_t</span> timeout;       <span class="comment">/* Blocking operation timeout. If UNIX current time                         </span></span><br><span class="line"><span class="comment">                             * is &gt; timeout then the operation timed out. */</span>                            </span><br><span class="line">                                                                                                        </span><br><span class="line">    <span class="comment">/* BLOCKED_LIST */</span>      </span><br><span class="line">    <span class="comment">// 造成阻塞的键</span></span><br><span class="line">    dict *keys;             <span class="comment">/* The keys we are waiting to terminate a blocking                          </span></span><br><span class="line"><span class="comment">                             * operation such as BLPOP. Otherwise NULL. */</span> </span><br><span class="line">    <span class="comment">// 保存PUSH进来的元素，用于BRPOPLPUSH命令</span></span><br><span class="line">    robj *target;           <span class="comment">/* The key that should receive the element,                                 </span></span><br><span class="line"><span class="comment">                             * for BRPOPLPUSH. */</span>                                                       </span><br><span class="line">                                                                                                        </span><br><span class="line">    <span class="comment">/* BLOCKED_WAIT */</span>   </span><br><span class="line">    <span class="keyword">int</span> numreplicas;        <span class="comment">/* Number of replicas we are waiting for ACK. */</span>                            </span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> reploffset;   <span class="comment">/* Replication offset to reach. */</span>                                          </span><br><span class="line">                                                                                                        </span><br><span class="line">    <span class="comment">/* BLOCKED_MODULE */</span>                                                                                </span><br><span class="line">    <span class="keyword">void</span> *module_blocked_handle; <span class="comment">/* RedisModuleBlockedClient structure.                                 </span></span><br><span class="line"><span class="comment">                                    which is opaque for the Redis core, only                            </span></span><br><span class="line"><span class="comment">                                    handled in module.c. */</span>                                             </span><br><span class="line">&#125; blockingState; </span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">client</span> &#123;</span></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    <span class="comment">// 保存着当前客户端的阻塞状态</span></span><br><span class="line">    blockingState bpop;     <span class="comment">/* blocking state */</span>       </span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisDb</span> &#123;</span></span><br><span class="line">   	<span class="comment">// 处于阻塞状态的键</span></span><br><span class="line">    dict *blocking_keys;        <span class="comment">/* Keys with clients waiting for data (BLPOP)*/</span> </span><br><span class="line">    <span class="comment">// 收到PUSH操作时保存的键，避免重复操作</span></span><br><span class="line">    dict *ready_keys;           <span class="comment">/* Blocked keys that received a PUSH */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <ul>
@@ -507,6 +509,7 @@
 <p>bpop是每个客户端保存的阻塞状态结构，其中key表示的是造成这个客户端阻塞的键。</p>
 </li>
 </ul>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -529,6 +532,7 @@
 </tr>
 </tbody>
 </table>
+</div>
 <h3 id="4-源码剖析"><a href="#4-源码剖析" class="headerlink" title="4. 源码剖析"></a>4. 源码剖析</h3><ul>
 <li>阻塞客户端</li>
 </ul>
