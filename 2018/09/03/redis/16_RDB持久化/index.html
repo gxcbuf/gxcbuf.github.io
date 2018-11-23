@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(十六) RDB持久化">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/09/03/redis/16_RDB持久化/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="Redis是一个内存数据库，数据库的状态都存储在内存中，如果服务器进程退出，那么所有的服务器状态都会丢失。Redis提供了RDB持久化功能，可以将内存中数据库的状态保存到磁盘中，避免因为意外进程退出导致的数据库状态丢失。 1. RDB文件 RDB存储对象长度定义，用来表示存储当前对象需要多少字节      宏定义 值 描述     RDB_6BITLEN 0 00XXXXXX，长度存储在后8bit">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-09-03T09:02:10.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(十六) RDB持久化 | 孰能生巧</title>
+  <title>Redis源码阅读(十六) RDB持久化 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -454,7 +454,7 @@
 <tr>
 <td>RDB_ENCVAL</td>
 <td>3</td>
-<td style="text-align:left">11OBKIND 表示一个特殊编码对象，用REDIS_RDS_ENC_*指定</td>
+<td style="text-align:left">11OBKIND 表示一个特殊编码对象，用REDIS<em>RDS_ENC</em>*指定</td>
 </tr>
 <tr>
 <td>RDB_LENERR</td>
@@ -891,7 +891,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -918,6 +918,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -930,6 +932,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -982,7 +986,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-RDB文件"><span class="nav-number">1.</span> <span class="nav-text">1. RDB文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-RDB文件结构"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 RDB文件结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-database数据区域部分"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 database数据区域部分</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-键值对数据区域"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 键值对数据区域</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-RDB文件的创建"><span class="nav-number">2.</span> <span class="nav-text">2. RDB文件的创建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-RDB文件的加载"><span class="nav-number">3.</span> <span class="nav-text">3. RDB文件的加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-number">4.</span> <span class="nav-text">4. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-RDB文件"><span class="nav-text">1. RDB文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-RDB文件结构"><span class="nav-text">1.1 RDB文件结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-database数据区域部分"><span class="nav-text">1.2 database数据区域部分</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-键值对数据区域"><span class="nav-text">1.3 键值对数据区域</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-RDB文件的创建"><span class="nav-text">2. RDB文件的创建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-RDB文件的加载"><span class="nav-text">3. RDB文件的加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-text">4. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -1168,37 +1172,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(三) 字典">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/02/redis/3_字典/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="字典，又称符号表、关联数组、映射(map)是一种保存K/V队的抽象数据结构。字典中每个key都是唯一的，而且能在常数时间O(1)获取key对应的值。 1. 定义 哈希表结点 key  保存键值对中的键 v  保存键值对中的值，类型可以为void *, uint64_t等，使用union节省内存 next  保存下一个哈希表结点，解决冲突时产生一个链表    12345678910typedef s">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-08-06T04:35:03.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(三) 字典 | 孰能生巧</title>
+  <title>Redis源码阅读(三) 字典 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -664,7 +664,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -691,6 +691,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -703,6 +705,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -755,7 +759,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-number">1.</span> <span class="nav-text">1. 定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-哈希算法"><span class="nav-number">2.</span> <span class="nav-text">2. 哈希算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-哈希函数"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 哈希函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-解决冲突"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 解决冲突</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-渐进式rehash"><span class="nav-number">3.</span> <span class="nav-text">3. 渐进式rehash</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-字典扫描"><span class="nav-number">4.</span> <span class="nav-text">4. 字典扫描</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-number">5.</span> <span class="nav-text">5. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-text">1. 定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-哈希算法"><span class="nav-text">2. 哈希算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-哈希函数"><span class="nav-text">2.1 哈希函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-解决冲突"><span class="nav-text">2.2 解决冲突</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-渐进式rehash"><span class="nav-text">3. 渐进式rehash</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-字典扫描"><span class="nav-text">4. 字典扫描</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-text">5. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -941,37 +945,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

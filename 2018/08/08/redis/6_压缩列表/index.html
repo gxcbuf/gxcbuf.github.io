@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(六) 压缩列表">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/08/redis/6_压缩列表/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="压缩列表是Redis为了节省内存而设计的特殊编码的双端链表，可以存储字符串和整数，整数值保存为实际的整数而不是字符数组，它允许在链表两端进行push和pop操作，时间复杂度为O(1)，很多的操作需要对内存进行重新分配，所以实际情况还与内存使用的大小有关。 1. 定义1.1 压缩列表从本质上来说，ziplist就是一串按照某种固定方式存储的字节数组，不依赖c语言的strcut，完全是内存的一些约束和">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-08-08T08:03:37.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(六) 压缩列表 | 孰能生巧</title>
+  <title>Redis源码阅读(六) 压缩列表 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -684,7 +684,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -711,6 +711,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -723,6 +725,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -775,7 +779,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-number">1.</span> <span class="nav-text">1. 定义</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-压缩列表"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 压缩列表</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-压缩列表结点"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 压缩列表结点</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-连锁更新"><span class="nav-number">2.</span> <span class="nav-text">2. 连锁更新</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-源码剖析"><span class="nav-number">3.</span> <span class="nav-text">3. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-text">1. 定义</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-压缩列表"><span class="nav-text">1.1 压缩列表</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-压缩列表结点"><span class="nav-text">1.2 压缩列表结点</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-连锁更新"><span class="nav-text">2. 连锁更新</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-源码剖析"><span class="nav-text">3. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -961,37 +965,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

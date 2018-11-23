@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(十七) AOF持久化">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/09/05/redis/17_AOF持久化/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="Redis除了RDB持久化外，还提供了AOF持久化，AOF持久化通过保存Redis服务端执行的命令来记录数据库状态。 1. AOF文件1234567// AOF内容格式命令个数: *&amp;lt;count&amp;gt;\r\n命令内容: $&amp;lt;length&amp;gt;\r\n&amp;lt;content&amp;gt;\r\n如 &quot;SET hello world&quot; 指令, count表示命令个数为3，length表示当前">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-09-05T07:53:24.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(十七) AOF持久化 | 孰能生巧</title>
+  <title>Redis源码阅读(十七) AOF持久化 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -613,7 +613,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -640,6 +640,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -652,6 +654,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -704,7 +708,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-AOF文件"><span class="nav-number">1.</span> <span class="nav-text">1. AOF文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-AOF持久化"><span class="nav-number">2.</span> <span class="nav-text">2. AOF持久化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-命令追加"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 命令追加</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-写入文件和同步磁盘"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 写入文件和同步磁盘</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-AOF载入"><span class="nav-number">3.</span> <span class="nav-text">3. AOF载入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-AOF重写"><span class="nav-number">4.</span> <span class="nav-text">4. AOF重写</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-number">5.</span> <span class="nav-text">5. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-AOF文件"><span class="nav-text">1. AOF文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-AOF持久化"><span class="nav-text">2. AOF持久化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-命令追加"><span class="nav-text">2.1 命令追加</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-写入文件和同步磁盘"><span class="nav-text">2.2 写入文件和同步磁盘</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-AOF载入"><span class="nav-text">3. AOF载入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-AOF重写"><span class="nav-text">4. AOF重写</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-text">5. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -890,37 +894,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(八) 快速列表">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/14/redis/8_快速列表/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="快速列表quicklist是一个由压缩列表ziplist组成的双端链表，链表中每个结点都有一个ziplist，每个ziplist有多个entry，主要用于列表键的底层实现，替换了原有的双端链表adlist。 1. 定义 快速列表结点 结点进行压缩后，zl指向的是压缩后的LZF结构体，其中compressd中存储的压缩的内容   12345678910111213141516171819202122">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-08-15T06:23:00.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(八) 快速列表 | 孰能生巧</title>
+  <title>Redis源码阅读(八) 快速列表 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -608,7 +608,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -635,6 +635,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -647,6 +649,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -699,7 +703,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-number">1.</span> <span class="nav-text">1. 定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-源码剖析"><span class="nav-number">2.</span> <span class="nav-text">2. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-text">1. 定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-源码剖析"><span class="nav-text">2. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -885,37 +889,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

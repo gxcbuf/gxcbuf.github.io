@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(二十三) 集群">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/10/25/redis/23_集群/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="Redis集群是Redis的分布式实现，具有高性能和线性可扩展性，最多可拥有1000个节点；具有可接受的写入安全程度，系统尽力保留与大多主节点连接的客户端的所有写入；同时保持可用性，集群能够在大多数主节点可用区中存活。集群通过分片的方式进行数据共享，并提供复制和故障转移功能。 1. 集群节点Redis集群通常包含多个节点，但最开始时，每个节点都是独立的集群，要将它们连接在一起需要执行CLUSTER">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-10-25T08:11:14.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(二十三) 集群 | 孰能生巧</title>
+  <title>Redis源码阅读(二十三) 集群 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -506,6 +506,10 @@
 
           <div class="post-nav-prev post-nav-item">
             
+              <a href="/2018/11/21/book/2_深入理解Nginx/" rel="prev" title="深入理解Nginx阅读笔记 --- 壹 · 初识Nginx">
+                深入理解Nginx阅读笔记 --- 壹 · 初识Nginx <i class="fa fa-chevron-right"></i>
+              </a>
+            
           </div>
         </div>
       
@@ -572,7 +576,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -599,6 +603,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -611,6 +617,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -663,7 +671,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-集群节点"><span class="nav-number">1.</span> <span class="nav-text">1. 集群节点</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-集群数据结构"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 集群数据结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-CLUSTER-MEET命令"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 CLUSTER MEET命令</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-散列槽指派"><span class="nav-number">2.</span> <span class="nav-text">2. 散列槽指派</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-重定向和重新分片"><span class="nav-number">3.</span> <span class="nav-text">3. 重定向和重新分片</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-MOVED错误"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 MOVED错误</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-重新分片"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 重新分片</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-ASK错误"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 ASK错误</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-ASKING"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 ASKING</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-5-MOVED错误和ASK错误的区别"><span class="nav-number">3.5.</span> <span class="nav-text">3.5 MOVED错误和ASK错误的区别</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-集群节点"><span class="nav-text">1. 集群节点</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-集群数据结构"><span class="nav-text">1.1 集群数据结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-CLUSTER-MEET命令"><span class="nav-text">1.2 CLUSTER MEET命令</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-散列槽指派"><span class="nav-text">2. 散列槽指派</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-重定向和重新分片"><span class="nav-text">3. 重定向和重新分片</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-MOVED错误"><span class="nav-text">3.1 MOVED错误</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-重新分片"><span class="nav-text">3.2 重新分片</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-ASK错误"><span class="nav-text">3.3 ASK错误</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-ASKING"><span class="nav-text">3.4 ASKING</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-5-MOVED错误和ASK错误的区别"><span class="nav-text">3.5 MOVED错误和ASK错误的区别</span></a></li></ol></li></ol></div>
             
 
           </div>
@@ -849,37 +857,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(二十) 服务器">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/09/19/redis/20_服务器/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="1. 服务器定义Redis服务段结构是其最核心的功能结构，负责维护与客户端键的网络连接，维护数据库状态，执行客户端的命令请求，统计一些运行数据等等。 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-09-19T03:14:13.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(二十) 服务器 | 孰能生巧</title>
+  <title>Redis源码阅读(二十) 服务器 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -736,7 +736,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -763,6 +763,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -775,6 +777,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -827,7 +831,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-服务器定义"><span class="nav-number">1.</span> <span class="nav-text">1. 服务器定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Redis命令"><span class="nav-number">2.</span> <span class="nav-text">2. Redis命令</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-命令表-commands"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 命令表 commands</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-命令请求执行过程"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 命令请求执行过程</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Redis周期性任务"><span class="nav-number">3.</span> <span class="nav-text">3. Redis周期性任务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-更新服务器时间缓存"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 更新服务器时间缓存</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-处理SIGTERM信号"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 处理SIGTERM信号</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-客户端资源管理clientsCron"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 客户端资源管理clientsCron()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-管理数据库资源databaseCron"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 管理数据库资源databaseCron()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-5-持久化记录"><span class="nav-number">3.5.</span> <span class="nav-text">3.5 持久化记录</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-6-更新信息并记录日志"><span class="nav-number">3.6.</span> <span class="nav-text">3.6 更新信息并记录日志</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-7-其他一些任务"><span class="nav-number">3.7.</span> <span class="nav-text">3.7 其他一些任务</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-number">4.</span> <span class="nav-text">4. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-服务器定义"><span class="nav-text">1. 服务器定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Redis命令"><span class="nav-text">2. Redis命令</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-命令表-commands"><span class="nav-text">2.1 命令表 commands</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-命令请求执行过程"><span class="nav-text">2.2 命令请求执行过程</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Redis周期性任务"><span class="nav-text">3. Redis周期性任务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-更新服务器时间缓存"><span class="nav-text">3.1 更新服务器时间缓存</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-处理SIGTERM信号"><span class="nav-text">3.2 处理SIGTERM信号</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-客户端资源管理clientsCron"><span class="nav-text">3.3 客户端资源管理clientsCron()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-管理数据库资源databaseCron"><span class="nav-text">3.4 管理数据库资源databaseCron()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-5-持久化记录"><span class="nav-text">3.5 持久化记录</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-6-更新信息并记录日志"><span class="nav-text">3.6 更新信息并记录日志</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-7-其他一些任务"><span class="nav-text">3.7 其他一些任务</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-text">4. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -1013,37 +1017,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

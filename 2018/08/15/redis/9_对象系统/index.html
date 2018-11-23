@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(九) 对象系统">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/15/redis/9_对象系统/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="Redis定义了一些基本了数据类型，如简单动态字符串、字典、跳跃表、压缩列表等等，但并未使用这些结构作为对象存储，而是定义了一套对象系统，底层使用这些数据结构进行存储，这个对象系统包括了字符串对象、列表对象、哈希对象、集合对象、有序集合对象，Redis针对不同的使用场景，设置不同的数据结构，优化其使用效率。 Redis通过对象引用计数进行内存的自动回收，并通过引用计数实现对象共享机制，Redis对">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-08-27T10:26:32.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(九) 对象系统 | 孰能生巧</title>
+  <title>Redis源码阅读(九) 对象系统 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -804,7 +804,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -831,6 +831,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -843,6 +845,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -895,7 +899,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-redis对象定义"><span class="nav-number">1.</span> <span class="nav-text">1. redis对象定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-对象类型"><span class="nav-number">2.</span> <span class="nav-text">2. 对象类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-对象编码"><span class="nav-number">3.</span> <span class="nav-text">3. 对象编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-内存优化"><span class="nav-number">4.</span> <span class="nav-text">4. 内存优化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-引用计数"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 引用计数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-对象共享"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 对象共享</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-3-命令"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 命令</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-number">5.</span> <span class="nav-text">5. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-redis对象定义"><span class="nav-text">1. redis对象定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-对象类型"><span class="nav-text">2. 对象类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-对象编码"><span class="nav-text">3. 对象编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-内存优化"><span class="nav-text">4. 内存优化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-引用计数"><span class="nav-text">4.1 引用计数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-对象共享"><span class="nav-text">4.2 对象共享</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-3-命令"><span class="nav-text">4.3 命令</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-text">5. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -1081,37 +1085,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

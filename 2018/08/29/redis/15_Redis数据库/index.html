@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(十五) 数据库对象">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/29/redis/15_Redis数据库/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="1. 定义 Redis数据库结构  1234567891011121314151617181920212223typedef struct redisDb &amp;#123;    // 键值对字典，保存数据库对象中的所有键值对    dict *dict;                 /* The keyspace for this DB */    // 过期字典, 保存设置了过期时间的键和过期">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-09-03T09:00:51.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(十五) 数据库对象 | 孰能生巧</title>
+  <title>Redis源码阅读(十五) 数据库对象 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -627,7 +627,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -654,6 +654,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -666,6 +668,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -718,7 +722,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-number">1.</span> <span class="nav-text">1. 定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Redis数据库"><span class="nav-number">2.</span> <span class="nav-text">2. Redis数据库</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-dict-键空间"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 dict 键空间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-expires-过期字典"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 expires 过期字典</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-blocking-keys-阻塞键字典"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 blocking_keys 阻塞键字典</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-ready-keys"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 ready_keys</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-watched-keys"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 watched_keys</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-6-读写键的维护"><span class="nav-number">2.6.</span> <span class="nav-text">2.6 读写键的维护</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Redis键过期策略"><span class="nav-number">3.</span> <span class="nav-text">3. Redis键过期策略</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-设置键的生存时间或过期时间"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 设置键的生存时间或过期时间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-过期键删除"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 过期键删除</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-AOF、RDB和复制对过期键处理"><span class="nav-number">4.</span> <span class="nav-text">4. AOF、RDB和复制对过期键处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-number">5.</span> <span class="nav-text">5. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-text">1. 定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Redis数据库"><span class="nav-text">2. Redis数据库</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-dict-键空间"><span class="nav-text">2.1 dict 键空间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-expires-过期字典"><span class="nav-text">2.2 expires 过期字典</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-blocking-keys-阻塞键字典"><span class="nav-text">2.3 blocking_keys 阻塞键字典</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-ready-keys"><span class="nav-text">2.4 ready_keys</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-watched-keys"><span class="nav-text">2.5 watched_keys</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-6-读写键的维护"><span class="nav-text">2.6 读写键的维护</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Redis键过期策略"><span class="nav-text">3. Redis键过期策略</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-设置键的生存时间或过期时间"><span class="nav-text">3.1 设置键的生存时间或过期时间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-过期键删除"><span class="nav-text">3.2 过期键删除</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-AOF、RDB和复制对过期键处理"><span class="nav-text">4. AOF、RDB和复制对过期键处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-源码剖析"><span class="nav-text">5. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -904,37 +908,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

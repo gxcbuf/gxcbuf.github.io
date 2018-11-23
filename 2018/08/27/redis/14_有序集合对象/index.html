@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(十四) 有序集合对象">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/27/redis/14_有序集合对象/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="Redis 有序集合和集合一样也是string类型元素的集合，且不允许重复的成员，不同的是每个元素都会关联一个double类型的分数，redis通过分数来为集合中的成员进行从小到大的排序，有序集合的成员是唯一的,但分数(score)却可以重复。集合中最大的成员数为 2^32 - 1 。 1. 编码有序集合对象的编码可以是ZIPLIST或SKIPLIST。 ZIPLIST编码的有序集合对象使用压缩列">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-08-27T10:25:26.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(十四) 有序集合对象 | 孰能生巧</title>
+  <title>Redis源码阅读(十四) 有序集合对象 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -654,7 +654,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -681,6 +681,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -693,6 +695,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -745,7 +749,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-编码"><span class="nav-number">1.</span> <span class="nav-text">1. 编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-编码转换"><span class="nav-number">2.</span> <span class="nav-text">2. 编码转换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-命令"><span class="nav-number">3.</span> <span class="nav-text">3. 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-number">4.</span> <span class="nav-text">4. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-编码"><span class="nav-text">1. 编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-编码转换"><span class="nav-text">2. 编码转换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-命令"><span class="nav-text">3. 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-text">4. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -931,37 +935,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

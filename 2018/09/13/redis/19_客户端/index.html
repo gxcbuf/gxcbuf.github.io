@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(十九) 客户端">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/09/13/redis/19_客户端/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="Redis是经典C/S架构，一个服务器可以与多个客户端进行通信。Redis服务器工作在单进程单线程模式，但它通过I/O多路复用技术处理客户端请求实现了高并发。 1. 客户端定义Redis客户端作为与服务器通信的媒介，保存了其必要的一些属性，要操作Redis服务器存储的内容，必须通过客户端与服务端进行通信才能修改。 123456789101112131415161718192021222324252">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-09-13T08:34:48.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(十九) 客户端 | 孰能生巧</title>
+  <title>Redis源码阅读(十九) 客户端 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -726,7 +726,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -753,6 +753,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -765,6 +767,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -817,7 +821,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-客户端定义"><span class="nav-number">1.</span> <span class="nav-text">1. 客户端定义</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-套接字文件描述符-fd"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 套接字文件描述符 - fd</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-客户端名称-name"><span class="nav-number">2.</span> <span class="nav-text">1.2 客户端名称 - name</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-标志-flags"><span class="nav-number">2.1.</span> <span class="nav-text">1.3 标志 - flags</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-输入缓冲区-querybuf"><span class="nav-number">2.2.</span> <span class="nav-text">1.4 输入缓冲区 - querybuf</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-5-输出缓冲区-list-amp-buf"><span class="nav-number">2.3.</span> <span class="nav-text">1.5 输出缓冲区 - list &amp; buf</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-源码剖析"><span class="nav-number">3.</span> <span class="nav-text">2. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-客户端定义"><span class="nav-text">1. 客户端定义</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-套接字文件描述符-fd"><span class="nav-text">1.1 套接字文件描述符 - fd</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-客户端名称-name"><span class="nav-text">1.2 客户端名称 - name</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-标志-flags"><span class="nav-text">1.3 标志 - flags</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-输入缓冲区-querybuf"><span class="nav-text">1.4 输入缓冲区 - querybuf</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-5-输出缓冲区-list-amp-buf"><span class="nav-text">1.5 输出缓冲区 - list &amp; buf</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-源码剖析"><span class="nav-text">2. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -1003,37 +1007,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

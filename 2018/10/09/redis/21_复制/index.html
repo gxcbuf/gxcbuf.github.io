@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(二十一) 复制">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/10/09/redis/21_复制/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="Redis为了解决单点故障的问题，会将数据复制到多个从节点服务器中，通过复制，实现Redis的高可用。 1. 介绍复制使得slave服务器能够精确复制master服务器的数据，每当slave和master连接断开时，slave会自动重连到master，并且无论这期间master做了什么操作，slave都将尝试让自身成为master的精确副本。  当一个master和slave连接正常时，maste">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:updated_time" content="2018-10-09T08:53:46.000Z">
@@ -136,7 +136,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(二十一) 复制 | 孰能生巧</title>
+  <title>Redis源码阅读(二十一) 复制 | KEEP GOING</title>
   
 
 
@@ -204,7 +204,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -323,12 +323,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -583,7 +583,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -610,6 +610,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -622,6 +624,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -674,7 +678,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-介绍"><span class="nav-number">1.</span> <span class="nav-text">1. 介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-工作原理"><span class="nav-number">2.</span> <span class="nav-text">2. 工作原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-部分重同步"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 部分重同步</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-完全重同步"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 完全重同步</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-心跳检测"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 心跳检测</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-复制积压缓冲区backlog"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 复制积压缓冲区backlog</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-实现"><span class="nav-number">3.</span> <span class="nav-text">3. 实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-number">4.</span> <span class="nav-text">4. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-介绍"><span class="nav-text">1. 介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-工作原理"><span class="nav-text">2. 工作原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-部分重同步"><span class="nav-text">2.1 部分重同步</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-完全重同步"><span class="nav-text">2.2 完全重同步</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-心跳检测"><span class="nav-text">2.3 心跳检测</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-复制积压缓冲区backlog"><span class="nav-text">2.4 复制积压缓冲区backlog</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-实现"><span class="nav-text">3. 实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-源码剖析"><span class="nav-text">4. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -860,37 +864,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   

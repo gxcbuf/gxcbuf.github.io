@@ -113,7 +113,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Redis源码阅读(四) 跳跃表">
 <meta property="og:url" content="http://gxcbuf.github.io/2018/08/06/redis/4_跳跃表/index.html">
-<meta property="og:site_name" content="孰能生巧">
+<meta property="og:site_name" content="KEEP GOING">
 <meta property="og:description" content="跳跃表是一种有序链表，通过维持多个指针指向不同结点用来进行快速访问，它支持平均O(logN)，最坏O(N)的时间复杂度，在Redis中它是实现有序集合ZSET的底层实现之一。 1. 定义Redis中，跳跃表实现如下图  这个跳跃表的实现和 William Pugh的《Skip Lists: A Probabilistic Alternative to Balanced Trees》 中描述的基本相">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://gxcbuf.github.io/images/skiplist.png">
@@ -138,7 +138,7 @@
   };
 </script>
 
-  <title>Redis源码阅读(四) 跳跃表 | 孰能生巧</title>
+  <title>Redis源码阅读(四) 跳跃表 | KEEP GOING</title>
   
 
 
@@ -206,7 +206,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">孰能生巧</span>
+        <span class="site-title">KEEP GOING</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -325,12 +325,12 @@
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="郭欣成">
-      <meta itemprop="description" content="Persion & Developer">
+      <meta itemprop="description" content="Backend & Developer">
       <meta itemprop="image" content="/images/smile.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="孰能生巧">
+      <meta itemprop="name" content="KEEP GOING">
     </span>
 
     
@@ -582,7 +582,7 @@
                 alt="郭欣成" />
             
               <p class="site-author-name" itemprop="name">郭欣成</p>
-              <p class="site-description motion-element" itemprop="description">Persion & Developer</p>
+              <p class="site-description motion-element" itemprop="description">Backend & Developer</p>
           </div>
 
           
@@ -609,6 +609,8 @@
                     
                       
                     
+                      
+                    
                     <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
@@ -621,6 +623,8 @@
                 <div class="site-state-item site-state-tags">
                   <a href="/tags/index.html">
                     
+                    
+                      
                     
                       
                     
@@ -673,7 +677,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-number">1.</span> <span class="nav-text">1. 定义</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-跳跃表结点"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 跳跃表结点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-跳跃表"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 跳跃表</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-幂次定律"><span class="nav-number">2.</span> <span class="nav-text">2. 幂次定律</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-源码剖析"><span class="nav-number">3.</span> <span class="nav-text">3. 源码剖析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-定义"><span class="nav-text">1. 定义</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-跳跃表结点"><span class="nav-text">1.1 跳跃表结点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-跳跃表"><span class="nav-text">1.2 跳跃表</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-幂次定律"><span class="nav-text">2. 幂次定律</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-源码剖析"><span class="nav-text">3. 源码剖析</span></a></li></ol></div>
             
 
           </div>
@@ -859,37 +863,6 @@
   
 
   
-  
-
-  
-  
-
-  
-    
-      <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      TeX: {equationNumbers: { autoNumber: "AMS" }}
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-      var all = MathJax.Hub.getAllJax(), i;
-        for (i=0; i < all.length; i += 1) {
-          all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-<script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-    
-  
-
 
   
   
